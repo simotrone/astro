@@ -6,6 +6,7 @@ import os
 import sys
 
 class TimeSliceExporter:
+    # Reference: http://cta.irap.omp.eu/ctools/users/user_manual/models_spectral.html#file-function
     def __init__(self, input_filename, model_template=None, savings_dir=None, verbosity=0, tmax=None):
         self.input_filename = input_filename
         self.hdul = fits.open(input_filename)
@@ -41,6 +42,7 @@ class TimeSliceExporter:
     # times in secs
     # energies in GeV
     # spectra in ph/cm2/s/GeV
+    # Important: we need to convert GeV in MeV (see ref.)
     def export(self):
         times    = self.hdul['TIMES'].data
         energies = self.hdul['ENERGIES'].data
@@ -61,6 +63,7 @@ class TimeSliceExporter:
             # test this at the end because we want  time slot more over the tmax
             if self.tmax is not None and self.tmax < tsec[0]:
                 break
+        return done
 
     def write_slice_tsv(self, output_filename, energies, spectra):
         if not len(energies) == len(spectra):
@@ -99,5 +102,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     exporter = TimeSliceExporter(args.input_fits, model_template=args.model, savings_dir=args.dir, verbosity=args.verbose, tmax=args.tmax)
-    exporter.export()
+    slices = exporter.export()
+    print(slices)
     exit(0)
