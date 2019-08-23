@@ -12,6 +12,7 @@ pip install --upgrade pip
 pip install astropy
 # Could need tkinter on box (ex: dnf install python3-tkinter)
 pip install matplotlib
+pip install defusedxml
 pip freeze
 
 # more libs
