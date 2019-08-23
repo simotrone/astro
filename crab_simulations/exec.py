@@ -6,10 +6,10 @@ import json
 import math
 import matplotlib.pyplot as plt
 import os
-import statistics as s
+import statistics
 import sys
 from scipy.stats import norm
-# version 2.0
+# version 2.1
 # Example:
 #   MAX_SEED=10 python exec.py
 #   ds9 cntcube.fits -region onoff_on.reg 
@@ -195,9 +195,6 @@ def get_model_info(model_file):
     models = gammalib.GModels(model_file)
     spectral_model = models["Crab"].spectral()
     fluxes = compute_fluxes(spectral_model, ENERGY["min"], ENERGY["max"])
-    # if models["Crab"].ts() < 0:
-    #     print(models)
-    #     exit(0)
     return {
         "model_file": model_file,
         "working_dir": os.path.dirname(model_file),
@@ -283,7 +280,7 @@ def data_summary(all_data_info):
                 "flux_array":  [],
                 "eflux_array": [],
                 "ts_array":      [],
-                "sqrt_ts_array": [],
+                # "sqrt_ts_array": [],
                 "li_ma_array": [],
                 "N_on_array":  [],
                 "N_off_array": [],
@@ -297,7 +294,7 @@ def data_summary(all_data_info):
         o[key]["flux_array"].append(model["flux"])
         o[key]["eflux_array"].append(model["eflux"])
         o[key]["ts_array"].append(model["ts"]) # need ts to 0?
-        o[key]["sqrt_ts_array"].append(math.sqrt(model["ts"]) if model["ts"] >= 0 else 0)
+        # o[key]["sqrt_ts_array"].append(math.sqrt(model["ts"]) if model["ts"] >= 0 else 0)
         o[key]["li_ma_array"].append(onoff["li_ma"] if onoff["li_ma"] is not None else 0)
         o[key]["N_on_array"].append(onoff["N_on"])
         o[key]["N_off_array"].append(onoff["N_off"])
@@ -329,34 +326,56 @@ def data_summary_is_ok(data):
     return True
 
 def array_stats(arr):
-    return { "n": len(arr), "m": s.mean(arr), "s": s.stdev(arr) }
+    stat = {
+        "n": len(arr),
+        "mean": statistics.mean(arr),
+        "stdev": statistics.pstdev(arr),
+        "median": statistics.median(arr),
+    }
+    # same numbers of: mean, stdev = norm.fit(arr)
+    return stat
 
 def print_data_summary(data):
-    fields = {
-        "h_fmt": [      "%15s",   "%10s",   "%10s",  "%6s",   "%6s",            "%18s",        "%16s",   "%6s",         "%15s",          "%15s",        "%15s",        "%11s",   "%7s"],
-        "v_fmt": [      "%15s", "%10.4f", "%10.4f",  "%6d",   "%6d",     "%9.2e±%8.2e", "%9.2f±%6.2f", "%6.2f",  "%8.2f±%6.2f",   "%8.2f±%6.2f", "%8.2f±%6.2f", "%6.2f±%4.2f", "%7.4f"],
-        "title": ["    fs ref",     "RA",    "Dec", "tmax", "seeds", "flux [ph/cm²/s]",          "TS",   "√TS",         "N_on",         "N_off",         "N_s",       "Li&Ma", "alpha"],
-        "sub_t": ["==========",     "==",    "===", "====", "=====", "===============",          "==",   "===",         "====",         "=====",         "===",       "=====", "====="],
-    }
+    fields = [
+      #   h_format,      v_format,             title,             sub_t
+        [   "%15s",        "%15s",          "fs ref",      "==========", ],
+        [   "%10s",      "%10.4f",              "RA",              "==", ],
+        [   "%10s",      "%10.4f",             "Dec",             "===", ],
+        [    "%6s",         "%6d",            "tmax",            "====", ],
+        [    "%6s",         "%6d",           "seeds",           "=====", ],
+        [   "%18s", "%9.2e±%8.2e", "flux [ph/cm²/s]", "===============", ],
+        [   "%16s", "%9.2f±%6.2f",              "TS",              "==", ],
+      # [    "%6s",       "%6.2f",             "√TS",             "===", ],
+        [   "%15s", "%8.2f±%6.2f",            "N_on",            "====", ],
+        [   "%15s", "%8.2f±%6.2f",           "N_off",           "=====", ],
+        [   "%15s", "%8.2f±%6.2f",             "N_s",             "===", ],
+        [   "%11s", "%6.2f±%4.2f",           "Li&Ma",           "=====", ],
+        [    "%7s",       "%7.4f",           "alpha",           "=====", ],
+    ]
 
-    header_fmt = " ".join(fields["h_fmt"])
-    values_fmt = " ".join(fields["v_fmt"])
-    print(header_fmt % tuple(fields["title"]))
-    print(header_fmt % tuple(fields["sub_t"]))
+    header_fmt = " ".join([r[0] for r in fields]) # headers format
+    values_fmt = " ".join([r[1] for r in fields]) # values format
+    print(header_fmt % tuple([r[2] for r in fields])) # titles
+    print(header_fmt % tuple([r[3] for r in fields])) # sub_titles separator
     for d in sorted(data, key=lambda i: (-1*i["tmax"], i["ra"], i["dec"])):
         n_seeds = len(d["seed_array"])
         flux_m = array_stats(d["flux_array"])
         ts_m   = array_stats(d["ts_array"])
-        sqrt_ts_m = array_stats(d["sqrt_ts_array"])
+        # sqrt_ts_m = array_stats(d["sqrt_ts_array"])
         N_on_m  = array_stats(d["N_on_array"])
         N_off_m = array_stats(d["N_off_array"])
         N_s_m   = array_stats(d["N_s_array"])
         li_ma_m = array_stats(d["li_ma_array"])
         alpha_m = array_stats(d["alpha_array"]) # useless
         print(values_fmt % (d["name"], d["ra"], d["dec"], d["tmax"], n_seeds,
-            flux_m["m"], flux_m["s"], ts_m["m"], ts_m["s"], sqrt_ts_m["m"],
-            N_on_m["m"], N_on_m["s"], N_off_m["m"], N_off_m["s"], N_s_m["m"], N_s_m["s"],
-            li_ma_m["m"], li_ma_m["s"], alpha_m["m"]))
+            flux_m["mean"], flux_m["stdev"],
+            ts_m["mean"], ts_m["stdev"],
+            # sqrt_ts_m["mean"],
+            N_on_m["mean"],  N_on_m["stdev"],
+            N_off_m["mean"], N_off_m["stdev"],
+            N_s_m["mean"],   N_s_m["stdev"],
+            li_ma_m["mean"], li_ma_m["stdev"],
+            alpha_m["mean"]))
 
 def dynamic_bin_number(arr, max_val=None):
     n = max(arr)-min(arr)
@@ -366,24 +385,30 @@ def dynamic_bin_number(arr, max_val=None):
         n = max_val
     return int(n)
 
+# seaborn graph with distplot. Same data, same gaussian loc/scale
+#   import seaborn as sns, numpy as np
+#   print(array_stats(d["ts_array"]))
+#   print(norm.fit(d["ts_array"]))
+#   sns.distplot(d["ts_array"], bins=50, kde=True, fit=norm, norm_hist=False)# , norm_hist=True) #array, bins=n_bins, fit=norm, norm_hist=True
 def create_hist(ax, data_arr, xlabel=None, color="blue", dyn_bins=False, exp_fmt=False, density_flag=True):
     n_bins = 50
     if dyn_bins:
         n_bins = dynamic_bin_number(data_arr)
-
     stats = array_stats(data_arr)
 
     if density_flag:
         counts, bins, patches = ax.hist(data_arr, bins=n_bins, alpha=0.5, edgecolor=color, color=color, density=True)
-        ax.plot(bins, norm.pdf(bins, stats["m"], stats["s"]), color="black", linestyle="--", alpha=0.5)
+        ax.plot(bins, norm.pdf(bins, stats["mean"], stats["stdev"]), color="grey", linestyle="--", alpha=0.9)
     else:
         counts, bins, patches = ax.hist(data_arr, bins=n_bins, alpha=0.5, edgecolor=color, color=color)
 
-    ax.axvline(stats["m"], color="black", linestyle="-.", alpha=0.5)
+    ax.axvline(stats["mean"],   color="grey", linestyle="--", alpha=0.9)
+    ax.axvline(stats["median"], color="black",  linestyle="-.", alpha=0.5)
+
+    legend_fmt = 'bins=%d\nmean=%.2f\nmedian=%.2f\nσ=%.2f'
     if exp_fmt:
-        ax.text(0.7, 0.75, 'bins=%d\nμ=%.2e\nσ=%.2e' % (n_bins, stats["m"], stats["s"]), transform=ax.transAxes)
-    else:
-        ax.text(0.7, 0.75, 'bins=%d\nμ=%.2f\nσ=%.2f' % (n_bins, stats["m"], stats["s"]), transform=ax.transAxes)
+        legend_fmt = 'bins=%d\nmean=%.2e\nmedian=%.2e\nσ=%.2e'
+    ax.text(x=0.65, y=0.70, s=legend_fmt % (n_bins, stats["mean"], stats["median"], stats["stdev"]), transform=ax.transAxes)
 
     # if int is True:
     #     from matplotlib.ticker import FormatStrFormatter
@@ -401,12 +426,12 @@ def plot_data_summary(data):
         fig, ax = plt.subplots(nrows=rows_num, ncols=2, figsize=(9, rows_num*3))
         fig.suptitle(d["name"]+" "+str(d["tmax"]), va="top", ha="center")
 
-        create_hist(ax[0][0], d["ts_array"],    xlabel="TS",    color="blue")
-        create_hist(ax[1][0], d["li_ma_array"], xlabel="Li&Ma", color="cyan")
-        create_hist(ax[2][0], d["flux_array"],  xlabel="Flux [ph/cm²/s]",  color="green",  exp_fmt=True)
-        create_hist(ax[0][1], d["N_on_array"],  xlabel="N on",  color="orange", dyn_bins=True)
-        create_hist(ax[1][1], d["N_off_array"], xlabel="N off", color="red",    dyn_bins=True)
-        create_hist(ax[2][1], d["N_s_array"],   xlabel="N signal", color="yellow", dyn_bins=True)
+        create_hist(ax[0][0], d["ts_array"],    color="blue",   xlabel="TS")
+        create_hist(ax[1][0], d["li_ma_array"], color="cyan",   xlabel="Li&Ma")
+        create_hist(ax[2][0], d["flux_array"],  color="green",  xlabel="Flux [ph/cm²/s]", exp_fmt=True)
+        create_hist(ax[0][1], d["N_on_array"],  color="orange", xlabel="N on",     dyn_bins=True)
+        create_hist(ax[1][1], d["N_off_array"], color="red",    xlabel="N off",    dyn_bins=True)
+        create_hist(ax[2][1], d["N_s_array"],   color="yellow", xlabel="N signal", dyn_bins=True)
 
         # Important: first tight_layout(), after adjust for the title
         fig.tight_layout()
@@ -414,6 +439,7 @@ def plot_data_summary(data):
         # plt.show()
         plt.savefig("%s_%04d.png" % (d["name"], d["tmax"]), format="png")
         plt.close()
+
     return None
 
 # from Jurgen's ctools example
