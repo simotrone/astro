@@ -1,11 +1,36 @@
 from astropy.io import fits
-import sys
+from defusedxml.ElementTree import parse
+import argparse
 import csv
+import os
+import sys
 
 class TimeSliceExporter:
-    def __init__(self, input_filename):
+    def __init__(self, input_filename, model_template=None, savings_dir=None, verbosity=0):
         self.input_filename = input_filename
         self.hdul = fits.open(input_filename)
+        self.verbosity = verbosity
+        if self.verbosity > 0:
+            self.info()
+
+        self.model_filename = model_template
+        self.model_tree = None
+        if self.model_filename:
+            self.model_tree = self.parse_xml_model()
+
+        self.savings_dir = '.'
+        if savings_dir:
+            if os.path.isabs(savings_dir):
+                self.savings_dir = savings_dir
+            else:
+                self.savings_dir = os.path.join(self.savings_dir, savings_dir)
+            try:
+                os.makedirs(self.savings_dir)
+                if self.verbosity > 0:
+                    print("Created the data dir: {}".format(self.savings_dir), file=sys.stderr)
+            except FileExistsError as e:
+                if self.verbosity > 1:
+                    print("The data dir already exists", file=sys.stderr)
 
     def info(self):
         self.hdul.info()
@@ -18,21 +43,52 @@ class TimeSliceExporter:
         energies = self.hdul['ENERGIES'].data
         spectra  = self.hdul['SPECTRA'].data
         for i, tsec in enumerate(times):
-            print("{0:2d} {1:15f} sec".format(i, tsec[0]))
-            time_slice_filename = "spec_{0:02d}.tsv".format(i)
+            # writing energies/spectra tsv
+            time_slice_filename = os.path.join(self.savings_dir, "spec_{0:02d}.tsv".format(i))
             self.write_slice_tsv(time_slice_filename, energies, spectra[i])
+            # writing model xml if template was provided
+            xml_slice_filename = None
+            if self.model_filename:
+                xml_slice_filename = os.path.join(self.savings_dir, self.model_filename.replace('.', '_{0:02d}.'.format(i)))
+                self.write_linked_model(time_slice_filename, xml_slice_filename)
+            if self.verbosity > 1:
+                print('slice {0:2d} {1:15f} sec > {2}{3}'.format(i, tsec[0], time_slice_filename, ', '+xml_slice_filename if xml_slice_filename else ''), file=sys.stderr)
 
     def write_slice_tsv(self, output_filename, energies, spectra):
         if not len(energies) == len(spectra):
-            raise Exception("Need the same number of elements between energies and spectra")
+            raise Exception('Need the same number of elements between energies and spectra')
         with open(output_filename, mode='w', newline="\n") as fh:
             writer = csv.writer(fh, delimiter="\t", quotechar='"', quoting=csv.QUOTE_MINIMAL)
             for i, ene in enumerate(energies):
                 writer.writerow([ene[0], spectra[i]])
 
+    # read the xml just once
+    def parse_xml_model(self):
+        if not self.model_filename:
+            raise Exception('Need a model file template')
+        tree = parse(self.model_filename)
+        return tree
+
+    def write_linked_model(self, ref_file, output_xml_fn):
+        if not self.model_tree:
+            raise Exception('Need a defined xml model tree')
+        source_library = self.model_tree.getroot()
+        for source in source_library:
+            spectrum = source.find('spectrum')
+            if spectrum.attrib.get('type') != 'FileFunction':
+                continue
+            spectrum.set('file', ref_file)
+            break # we can stop at first occurrency
+        self.model_tree.write(output_xml_fn, xml_declaration=True, encoding="UTF-8")
+
 if __name__ == "__main__":
-    input_filename = sys.argv[1]
-    exporter = TimeSliceExporter(input_filename)
-    exporter.info()
+    parser = argparse.ArgumentParser(description="Create an obeservations list from a spectra fits")
+    parser.add_argument("input_fits", help="the fits file with times/energies/spectra data")
+    parser.add_argument("-m", "--model", help="the xml template")
+    parser.add_argument("-d", "--dir", help="the savings directory (default: data/)", default="data")
+    parser.add_argument("-v", "--verbose", action="count", default=0)
+    args = parser.parse_args()
+
+    exporter = TimeSliceExporter(args.input_fits, model_template=args.model, savings_dir=args.dir, verbosity=args.verbose)
     exporter.export()
     exit(0)
