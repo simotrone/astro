@@ -6,12 +6,15 @@ import os
 import sys
 
 class TimeSliceExporter:
-    def __init__(self, input_filename, model_template=None, savings_dir=None, verbosity=0):
+    def __init__(self, input_filename, model_template=None, savings_dir=None, verbosity=0, tmax=None):
         self.input_filename = input_filename
         self.hdul = fits.open(input_filename)
         self.verbosity = verbosity
         if self.verbosity > 0:
             self.info()
+        if tmax is not None and tmax < 1:
+            raise Exception('Need a non-zero positive tmax')
+        self.tmax = tmax
 
         self.model_filename = model_template
         self.model_tree = None
@@ -42,6 +45,7 @@ class TimeSliceExporter:
         times    = self.hdul['TIMES'].data
         energies = self.hdul['ENERGIES'].data
         spectra  = self.hdul['SPECTRA'].data
+        done = []
         for i, tsec in enumerate(times):
             # writing energies/spectra tsv
             time_slice_filename = os.path.join(self.savings_dir, "spec_{0:02d}.tsv".format(i))
@@ -50,9 +54,13 @@ class TimeSliceExporter:
             xml_slice_filename = None
             if self.model_filename:
                 xml_slice_filename = os.path.join(self.savings_dir, self.model_filename.replace('.', '_{0:02d}.'.format(i)))
-                self.write_linked_model(time_slice_filename, xml_slice_filename)
+                self.write_linked_model(os.path.basename(time_slice_filename), xml_slice_filename)
+            done.append((i, tsec[0], time_slice_filename, xml_slice_filename))
             if self.verbosity > 1:
                 print('slice {0:2d} {1:15f} sec > {2}{3}'.format(i, tsec[0], time_slice_filename, ', '+xml_slice_filename if xml_slice_filename else ''), file=sys.stderr)
+            # test this at the end because we want  time slot more over the tmax
+            if self.tmax is not None and self.tmax < tsec[0]:
+                break
 
     def write_slice_tsv(self, output_filename, energies, spectra):
         if not len(energies) == len(spectra):
@@ -87,8 +95,9 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--model", help="the xml template")
     parser.add_argument("-d", "--dir", help="the savings directory (default: data/)", default="data")
     parser.add_argument("-v", "--verbose", action="count", default=0)
+    parser.add_argument("--tmax", help="the final observations time in seconds", type=int)
     args = parser.parse_args()
 
-    exporter = TimeSliceExporter(args.input_fits, model_template=args.model, savings_dir=args.dir, verbosity=args.verbose)
+    exporter = TimeSliceExporter(args.input_fits, model_template=args.model, savings_dir=args.dir, verbosity=args.verbose, tmax=args.tmax)
     exporter.export()
     exit(0)
