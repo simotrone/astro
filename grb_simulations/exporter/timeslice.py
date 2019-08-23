@@ -55,7 +55,12 @@ class TimeSliceExporter:
             if self.model_filename:
                 xml_slice_filename = os.path.join(self.savings_dir, self.model_filename.replace('.', '_{0:02d}.'.format(i)))
                 self.write_linked_model(self.model_tree, os.path.basename(time_slice_filename), xml_slice_filename)
-            done.append((i, tsec[0], time_slice_filename, xml_slice_filename))
+            done.append({
+                "slice": i,
+                "tsec": tsec[0],
+                "ene_flux_file": time_slice_filename,
+                "model_file": xml_slice_filename,
+            })
             if self.verbosity > 1:
                 print('slice {0:2d} {1:15f} sec > {2}{3}'.format(i, tsec[0], time_slice_filename, ', '+xml_slice_filename if xml_slice_filename else ''), file=sys.stderr)
             # test this at the end because we want  time slot more over the tmax
@@ -63,12 +68,18 @@ class TimeSliceExporter:
                 break
         return done
 
+    # http://cta.irap.omp.eu/gammalib-devel/doxygen/classGModelSpectralFunc.html#a922f555636e58e519871913bcd76c5d8
+    # http://cta.irap.omp.eu/gammalib-devel/doxygen/classGCsv.html#details
+    # GCsv: This class implements a table of std::string elements that is loaded
+    #       from a comma-separated value ASCII file. The comma-separation string
+    #       can be specified upon loading of the file (by default the class
+    #       assumes that elements are separated by a white space).
     @staticmethod
     def write_slice_tsv(output_filename, energies, spectra):
         if not len(energies) == len(spectra):
             raise Exception('Need the same number of elements between energies and spectra')
         with open(output_filename, mode='w', newline="\n") as fh:
-            writer = csv.writer(fh, delimiter="\t", quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            writer = csv.writer(fh, delimiter=" ", quotechar='"', quoting=csv.QUOTE_MINIMAL)
             for i, ene in enumerate(energies):
                 writer.writerow([ene, spectra[i]])
 
