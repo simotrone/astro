@@ -19,7 +19,7 @@ class TimeSliceExporter:
         self.model_filename = model_template
         self.model_tree = None
         if self.model_filename:
-            self.model_tree = self.parse_xml(self.model_filename)
+            self.model_tree = parse(self.model_filename)
 
         self.savings_dir = '.'
         if savings_dir:
@@ -39,7 +39,7 @@ class TimeSliceExporter:
     # energies in GeV
     # spectra in ph/cm2/s/GeV
     # Important: we need to convert GeV in MeV (see ref.)
-    def export(self):
+    def export(self, force=False):
         times    = self.hdul['TIMES'].data
         energies = self.hdul['ENERGIES'].data
         spectra  = self.hdul['SPECTRA'].data
@@ -49,12 +49,14 @@ class TimeSliceExporter:
             # writing energies/spectra tsv
             mev_spectra = [f/1000 for f in spectra[i]]
             time_slice_filename = os.path.join(self.savings_dir, "spec_{0:02d}.tsv".format(i))
-            self.write_slice_tsv(time_slice_filename, mev_energies, mev_spectra)
+            if force or not os.path.isfile(time_slice_filename):
+                self.write_slice_tsv(time_slice_filename, mev_energies, mev_spectra)
             # writing model xml if template was provided
             xml_slice_filename = None
             if self.model_filename:
                 xml_slice_filename = os.path.join(self.savings_dir, self.model_filename.replace('.', '_{0:02d}.'.format(i)))
-                self.write_linked_model(self.model_tree, os.path.basename(time_slice_filename), xml_slice_filename)
+                if force or not os.path.isfile(xml_slice_filename):
+                    self.write_linked_model(self.model_tree, os.path.basename(time_slice_filename), xml_slice_filename)
             done.append({
                 "slice": i,
                 "tsec": tsec[0],
@@ -82,12 +84,6 @@ class TimeSliceExporter:
             writer = csv.writer(fh, delimiter=" ", quotechar='"', quoting=csv.QUOTE_MINIMAL)
             for i, ene in enumerate(energies):
                 writer.writerow([ene, spectra[i]])
-
-    # read the xml just once
-    @staticmethod
-    def parse_xml(filename):
-        tree = parse(filename)
-        return tree
 
     @classmethod
     def write_linked_model(cls, model_tree, ref_file, output_xml_fn):
