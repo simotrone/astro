@@ -51,12 +51,16 @@ class TimeSliceExporter:
             time_slice_filename = os.path.join(self.savings_dir, "spec_{0:02d}.tsv".format(i))
             if force or not os.path.isfile(time_slice_filename):
                 self.write_slice_tsv(time_slice_filename, mev_energies, mev_spectra)
+            elif self.verbosity > 1:
+                print("The slice file {} already exists".format(time_slice_filename), file=sys.stderr)
             # writing model xml if template was provided
             xml_slice_filename = None
             if self.model_filename:
                 xml_slice_filename = os.path.join(self.savings_dir, self.model_filename.replace('.', '_{0:02d}.'.format(i)))
                 if force or not os.path.isfile(xml_slice_filename):
                     self.write_linked_model(self.model_tree, os.path.basename(time_slice_filename), xml_slice_filename)
+                elif self.verbosity > 1:
+                    print("The xml file {} already exists".format(xml_slice_filename), file=sys.stderr)
             done.append({
                 "slice": i,
                 "tsec": tsec[0],
