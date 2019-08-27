@@ -84,6 +84,23 @@ class SourceObs:
                 print("Files {}, {} created.".format(output_obs_def, output_model_file), file=sys.stderr)
         return { "obs": output_obs_def, "model": output_model_file }
 
+    def ctlike_run(self, onoff_obs_file, input_model, working_dir='.', force=False):
+        result_file = os.path.join(working_dir, "ml_result.xml")
+        log_file    = os.path.join(working_dir, "ctlike.log")
+        if force or not os.path.isfile(result_file):
+            like = ctools.ctlike()
+            like.clear()
+            like["inobs"]    = onoff_obs_file
+            like["inmodel"]  = input_model
+            like["outmodel"] = result_file
+            like["logfile"]  = log_file
+            like.logFileOpen()
+            like.run()
+            like.save()
+            if self.verbosity > 1:
+                print("File {} created.".format(result_file), file=sys.stderr)
+        return result_file
+
 # http://cta.irap.omp.eu/ctools/users/user_manual/observations.html
 # http://cta.irap.omp.eu/ctools/users/glossary.html#glossary-obsdef
 # http://cta.irap.omp.eu/gammalib/doxygen/classGCTAObservation.html
@@ -150,8 +167,7 @@ if __name__ == "__main__":
     # create_events_selections(obs_list_filename, time_slots=TIME_SLOTS)
 
     # binning
-    # csphagen
-    sobs.csphagen_run(obs_list_filename, model=args.model, working_dir=args.dir, source_rad=0.2, force=args.force)
-    # likelihood
+    onoff_results = sobs.csphagen_run(obs_list_filename, model=args.model, working_dir=args.dir, source_rad=0.2, force=args.force)
+    sobs.ctlike_run(onoff_results["obs"], onoff_results["model"], working_dir=args.dir, force=args.force)
     exit(0)
 
