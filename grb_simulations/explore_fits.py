@@ -6,7 +6,7 @@ import os
 import sys
 import cscripts
 
-class Support:
+class SourceObs:
     def __init__(self, args, verbosity=0):
         self.verbosity = verbosity
         fields = [
@@ -125,7 +125,7 @@ if __name__ == "__main__":
     slices = exporter.export(force=args.force)
 
     # create events file for each valid time slice
-    obj = Support({ 'name': SOURCE['name'], 'ra': SOURCE['ra'], 'dec': SOURCE['dec'], 'energy_min': ENERGY['min'], 'energy_max': ENERGY['max'], 'seed': args.seed }, verbosity=args.verbose)
+    sobs = SourceObs({ 'name': SOURCE['name'], 'ra': SOURCE['ra'], 'dec': SOURCE['dec'], 'energy_min': ENERGY['min'], 'energy_max': ENERGY['max'], 'seed': args.seed }, verbosity=args.verbose)
     tstart = 0
     for s in slices:
         tstop = s['tsec']
@@ -138,7 +138,7 @@ if __name__ == "__main__":
         working_dir = os.path.dirname(s['model_file'])
         events_file = os.path.join(working_dir, "events_{0:02d}.fits".format(s['id']))
         log_file    = os.path.join(working_dir, "ctobssim_{0:02d}.log".format(s['id']))
-        s["events_file"] = obj.simulation_run(events_file, model_file=s['model_file'], ra=SOURCE['ra']+args.ra_shift, dec=SOURCE['dec']+args.dec_shift, time=[tstart, tstop], log_file=log_file, force=args.force)
+        s["events_file"] = sobs.simulation_run(events_file, model_file=s['model_file'], ra=SOURCE['ra']+args.ra_shift, dec=SOURCE['dec']+args.dec_shift, time=[tstart, tstop], log_file=log_file, force=args.force)
         tstart=tstop
 
     obs_list_filename = '{}_obs_definition_list.xml'.format(args.dir)
@@ -151,7 +151,7 @@ if __name__ == "__main__":
 
     # binning
     # csphagen
-    obj.csphagen_run(obs_list_filename, model=args.model, working_dir=args.dir, source_rad=0.2, force=args.force)
+    sobs.csphagen_run(obs_list_filename, model=args.model, working_dir=args.dir, source_rad=0.2, force=args.force)
     # likelihood
     exit(0)
 
