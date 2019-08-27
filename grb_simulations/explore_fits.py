@@ -4,13 +4,14 @@ import ctools
 import gammalib
 import os
 import sys
+import cscripts
 
 class Support:
     def __init__(self, args):
         fields = [
             ['name', 'MANDATORY'],
-            ['ra',   'MANDATORY'],
-            ['dec',  'MANDATORY'],
+            ['ra',   'MANDATORY'], # source ra
+            ['dec',  'MANDATORY'], # source dec
             ['seed',       1],
             ['rad',        5.0],
             ['energy_min', 0.03],
@@ -48,6 +49,39 @@ class Support:
             print("Events file '{}' time [{}-{}]".format(output_events_file, time[0], time[1]), file=sys.stderr)
         return output_events_file
 
+    def csphagen_run(self, obs_file, model, working_dir='.', source_rad=0.2, force=False):
+        log_file = os.path.join(working_dir, "csphagen.log")
+        output_obs_def = os.path.join(working_dir, "onoff_obs.xml")
+        output_model_file = os.path.join(working_dir, "onoff_result.xml")
+        if force or not os.path.isfile(output_obs_def) or not os.path.isfile(output_model_file):
+            phagen = cscripts.csphagen()
+            phagen.clear()
+            phagen["inobs"]   = obs_file
+            phagen["inmodel"] = model
+            phagen["srcname"] = self.name
+            phagen["caldb"]   = self.caldb
+            phagen["irf"]     = self.irf
+            phagen["ebinalg"]  = "LIN"
+            phagen["emin"]     = self.energy_min
+            phagen["emax"]     = self.energy_max
+            phagen["enumbins"] = 1
+            phagen["coordsys"] = "CEL"
+            phagen["ra"]    = self.ra
+            phagen["dec"]   = self.dec
+            phagen["rad"]   = source_rad
+            phagen["stack"] = True
+            phagen["bkgmethod"] = "REFLECTED"
+            phagen["outobs"]   = output_obs_def
+            phagen["outmodel"] = output_model_file
+            phagen["prefix"]   = os.path.join(working_dir, "onoff")
+            phagen["logfile"]  = log_file
+            phagen.logFileOpen()
+            phagen.run()
+            phagen.save()
+            print("File '{}' created.".format(output_obs_def), file=sys.stderr)
+            print("File '{}' created.".format(output_model_file), file=sys.stderr)
+        return { "obs": output_obs_def, "model": output_model_file }
+
 # http://cta.irap.omp.eu/ctools/users/user_manual/observations.html
 # http://cta.irap.omp.eu/ctools/users/glossary.html#glossary-obsdef
 # http://cta.irap.omp.eu/gammalib/doxygen/classGCTAObservation.html
@@ -81,6 +115,7 @@ if __name__ == "__main__":
     parser.add_argument("--force",     help="force the overwriting", default=False, action="store_true")
     parser.add_argument("-v", "--verbose", action="count", default=0)
     parser.add_argument("--seed", default=1, type=int)
+    parser.add_argument("-m",   "--model",     help="csphagen model for on-off analysis")
     args = parser.parse_args()
 
     # export the model for each time slice
@@ -110,11 +145,11 @@ if __name__ == "__main__":
         print(obs_list)
 
     # selections
-    create_events_selections(obs_list_filename, time_slots=TIME_SLOTS)
+    # create_events_selections(obs_list_filename, time_slots=TIME_SLOTS)
 
     # binning
     # csphagen
-    # obj.csphagen_run(obs_list_filename)
+    obj.csphagen_run(obs_list_filename, model=args.model, working_dir=args.dir, source_rad=0.2, force=args.force)
     # likelihood
     exit(0)
 
