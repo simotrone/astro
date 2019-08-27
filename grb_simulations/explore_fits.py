@@ -7,7 +7,8 @@ import sys
 import cscripts
 
 class Support:
-    def __init__(self, args):
+    def __init__(self, args, verbosity=0):
+        self.verbosity = verbosity
         fields = [
             ['name', 'MANDATORY'],
             ['ra',   'MANDATORY'], # source ra
@@ -46,7 +47,8 @@ class Support:
             sim.logFileOpen()
             sim.run()
             sim.save()
-            print("Events file '{}' time [{}-{}]".format(output_events_file, time[0], time[1]), file=sys.stderr)
+            if self.verbosity > 1:
+                print("Events file '{}' time [{}-{}]".format(output_events_file, time[0], time[1]), file=sys.stderr)
         return output_events_file
 
     def csphagen_run(self, obs_file, model, working_dir='.', source_rad=0.2, force=False):
@@ -78,8 +80,8 @@ class Support:
             phagen.logFileOpen()
             phagen.run()
             phagen.save()
-            print("File '{}' created.".format(output_obs_def), file=sys.stderr)
-            print("File '{}' created.".format(output_model_file), file=sys.stderr)
+            if self.verbosity > 1:
+                print("Files {}, {} created.".format(output_obs_def, output_model_file), file=sys.stderr)
         return { "obs": output_obs_def, "model": output_model_file }
 
 # http://cta.irap.omp.eu/ctools/users/user_manual/observations.html
@@ -123,7 +125,7 @@ if __name__ == "__main__":
     slices = exporter.export(force=args.force)
 
     # create events file for each valid time slice
-    obj = Support({ 'name': SOURCE['name'], 'ra': SOURCE['ra'], 'dec': SOURCE['dec'], 'energy_min': ENERGY['min'], 'energy_max': ENERGY['max'], 'seed': args.seed })
+    obj = Support({ 'name': SOURCE['name'], 'ra': SOURCE['ra'], 'dec': SOURCE['dec'], 'energy_min': ENERGY['min'], 'energy_max': ENERGY['max'], 'seed': args.seed }, verbosity=args.verbose)
     tstart = 0
     for s in slices:
         tstop = s['tsec']
