@@ -6,7 +6,7 @@ import sys
 
 class TimeSliceExporter:
     # Reference: http://cta.irap.omp.eu/ctools/users/user_manual/models_spectral.html#file-function
-    def __init__(self, input_filename, model_template=None, savings_dir=None, verbosity=0, tmax=None):
+    def __init__(self, input_filename, template_model=None, savings_dir=None, verbosity=0, tmax=None):
         self.input_filename = input_filename
         self.hdul = fits.open(input_filename)
         self.verbosity = verbosity
@@ -16,7 +16,7 @@ class TimeSliceExporter:
             raise Exception('Need a non-zero positive tmax')
         self.tmax = tmax
 
-        self.model_filename = model_template
+        self.model_filename = template_model
         self.model_tree = None
         if self.model_filename:
             self.model_tree = parse(self.model_filename)
@@ -62,7 +62,7 @@ class TimeSliceExporter:
                 elif self.verbosity > 1:
                     print("The xml file {} already exists".format(xml_slice_filename), file=sys.stderr)
             done.append({
-                "slice": i,
+                "id": i,
                 "tsec": tsec[0],
                 "ene_flux_file": time_slice_filename,
                 "model_file": xml_slice_filename,
