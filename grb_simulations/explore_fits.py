@@ -70,14 +70,19 @@ if __name__ == "__main__":
         sim_obs_list.save(os.path.join(working_dir, 'sim_obs_list.xml'))
 
     # selections
-
+    for t in TIME_SELECTION_SLOTS:
+        sel_working_dir = os.path.join(working_dir, "sel_"+str(t))
+        if not os.path.isdir(sel_working_dir):
+            os.mkdir(sel_working_dir)
+        sel_log_file = os.path.join(sel_working_dir, "ctselect.log")
+        sel_obs_file = os.path.join(sel_working_dir, "sel_obs_list.xml")
+        select = sobs.selection_run(sim_obs_list, output_obs_list=sel_obs_file, tmin=0, tmax=t, prefix=os.path.join(sel_working_dir, "selected_"), log_file=sel_log_file, force=args.force, save=args.save)
 
     ### csphagen / onoff analysis
     onoff_log_file = os.path.join(working_dir, "csphagen.log")
     onoff_obs_file = os.path.join(working_dir, "onoff_obs_list.xml")
     onoff_model_file = os.path.join(working_dir, "onoff_result.xml")
-    prefix = os.path.join(working_dir, "onoff")
-    phagen = sobs.csphagen_run(sim_obs_list, input_model=args.model, source_rad=0.2, output_obs_list=onoff_obs_file, output_model=onoff_model_file, log_file=onoff_log_file, prefix=prefix, force=args.force, save=args.save)
+    phagen = sobs.csphagen_run(sim_obs_list, input_model=args.model, source_rad=0.2, output_obs_list=onoff_obs_file, output_model=onoff_model_file, log_file=onoff_log_file, prefix=os.path.join(working_dir, "onoff"), force=args.force, save=args.save)
     phagen_obs_list = phagen.obs()
     if phagen_obs_list.size() == 0:
         print("csphagen doesn't provide an on/off observation list")
