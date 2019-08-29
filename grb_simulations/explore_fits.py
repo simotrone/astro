@@ -71,6 +71,7 @@ if __name__ == "__main__":
 
     # selections
 
+
     ### csphagen / onoff analysis
     onoff_log_file = os.path.join(working_dir, "csphagen.log")
     onoff_obs_file = os.path.join(working_dir, "onoff_obs_list.xml")
@@ -78,6 +79,9 @@ if __name__ == "__main__":
     prefix = os.path.join(working_dir, "onoff")
     phagen = sobs.csphagen_run(sim_obs_list, input_model=args.model, source_rad=0.2, output_obs_list=onoff_obs_file, output_model=onoff_model_file, log_file=onoff_log_file, prefix=prefix, force=args.force, save=args.save)
     phagen_obs_list = phagen.obs()
+    if phagen_obs_list.size() == 0:
+        print("csphagen doesn't provide an on/off observation list")
+        exit(1)
     if args.verbose > 0:
         print("OnOff list:\n", phagen_obs_list)
         print(phagen_obs_list[0]) # GCTAOnOffObservation
@@ -89,7 +93,7 @@ if __name__ == "__main__":
     like = sobs.ctlike_run(phagen_obs_list, input_models=phagen_obs_list.models(), output_models=like_models_file, log_file=like_log_file, force=args.force, save=args.save)
     # like = sobs.ctlike_run(onoff_obs_file, input_models=onoff_model_file, output_models=like_models_file, log_file=like_log_file, force=args.force)
     if args.verbose > 0:
-        print("Maximum Likelihood:\n", like)
+        print("Maximum Likelihood:\n", like.opt())
         print(like.obs())
         print(like.obs().models())
 
