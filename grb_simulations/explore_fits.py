@@ -1,139 +1,16 @@
 import argparse
-from exporter.timeslice import TimeSliceExporter
-import ctools
 import gammalib
 import os
 import sys
-import cscripts
-
-class SourceObs:
-    def __init__(self, args, verbosity=0):
-        self.verbosity = verbosity
-        fields = [
-            ['name', 'MANDATORY'],
-            ['ra',   'MANDATORY'], # source ra
-            ['dec',  'MANDATORY'], # source dec
-            ['seed',       1],
-            ['rad',        5.0],
-            ['energy_min', 0.03],
-            ['energy_max', 150.0],
-            ['caldb',    'prod2'],
-            ['irf', 'South_0.5h'],
-        ]
-        for f in fields:
-            field, default = f
-            if default == 'MANDATORY':
-                self.__dict__[field] = args[field]
-            else:
-                self.__dict__[field] = args[field] if field in args and args[field] else default
-
-    def simulation_run(self, model_file, events_file, ra=None, dec=None, time=[0, 1800], energy=[None, None], log_file='ctobssim.log', force=False, save=False):
-        sim = ctools.ctobssim()
-        sim["inmodel"]   = model_file
-        sim["outevents"] = events_file
-        sim["seed"]  = self.seed
-        sim["ra"]    = ra  if ra  else self.ra
-        sim["dec"]   = dec if dec else self.dec
-        sim["rad"]   = self.rad
-        sim["tmin"]  = float(time[0])
-        sim["tmax"]  = float(time[1])
-        sim["emin"]  = energy[0] if energy[0] else self.energy_min
-        sim["emax"]  = energy[1] if energy[1] else self.energy_max
-        sim["caldb"] = self.caldb
-        sim["irf"]   = self.irf
-        sim["logfile"] = log_file
-        if force or not os.path.isfile(events_file):
-            sim.run()
-            sim.logFileOpen()
-        else:
-            container = gammalib.GObservations()
-            gcta_obs = gammalib.GCTAObservation(events_file)
-            container.append(gcta_obs)
-            sim.obs(container)
-        saved = False
-        if (save and force) or (save and not os.path.isfile(events_file)):
-            sim.save()
-            saved = True
-        if saved and self.verbosity > 1:
-            print("Events file '{}' saved. time [{}-{}]".format(sim["outevents"].value(), tstart, tstop), file=sys.stderr)
-        return sim
-
-    def csphagen_run(self, input_obs_list, input_model, source_rad=0.2, output_obs_list='onoff_obs.xml', output_model='onoff_result.xml', log_file='csphagen.log', prefix='onoff', force=False, save=False):
-        phagen = cscripts.csphagen()
-        if isinstance(input_obs_list, gammalib.GObservations):
-            phagen.obs(input_obs_list)
-        elif os.path.isfile(input_obs_list):
-            # observations list from file
-            phagen["inobs"] = input_obs_list
-        else:
-            raise Exception('Cannot understand input obs list for csphagen')
-        phagen["inmodel"] = input_model
-        phagen["srcname"] = self.name
-        phagen["caldb"]   = self.caldb
-        phagen["irf"]     = self.irf
-        phagen["ebinalg"]  = "LIN"
-        phagen["emin"]     = self.energy_min
-        phagen["emax"]     = self.energy_max
-        phagen["enumbins"] = 1
-        phagen["coordsys"] = "CEL"
-        phagen["ra"]    = self.ra
-        phagen["dec"]   = self.dec
-        phagen["rad"]   = source_rad
-        phagen["stack"] = True
-        phagen["bkgmethod"] = "REFLECTED"
-        phagen["outobs"]   = output_obs_list
-        phagen["outmodel"] = output_model
-        phagen["prefix"]   = prefix
-        phagen["logfile"]  = log_file
-        if force or not os.path.isfile(output_obs_list) or not os.path.isfile(output_model):
-            phagen.run()
-            phagen.logFileOpen()
-        elif os.path.isfile(output_obs_list) and os.path.isfile(output_model):
-            onoff_obs = gammalib.GObservations(output_obs_list)
-            onoff_obs.models(gammalib.GModels(output_model))
-            phagen = cscripts.csphagen(onoff_obs)
-        else:
-            raise Exception("Cannot proceed with csphagen")
-        saved = False
-        if (save and force) or (save and not os.path.isfile(output_obs_list)) or (save and not os.path.isfile(output_model)):
-            phagen.save()
-            saved = True
-        if saved and self.verbosity > 1:
-            print("Files {}, {} created.".format(output_obs_list, output_model), file=sys.stderr)
-        return phagen
-
-    def ctlike_run(self, input_obs_list, input_models=None, output_models='ml_result.xml', logfile='ctlike.log', force=False, save=False):
-        like = ctools.ctlike()
-        if isinstance(input_obs_list, gammalib.GObservations):
-            like.obs(input_obs_list)
-        elif os.path.isfile(input_obs_list) and os.path.isfile(input_models):
-            # observations list from file
-            like["inobs"] = input_obs_list
-            like["inmodel"]  = input_models
-        else:
-            raise Exception('Cannot understand input obs list for ctlike')
-        like["outmodel"] = result_file
-        like["logfile"]  = log_file
-        if force or not os.path.isfile(output_models):
-            like.run()
-            like.logFileOpen()
-        elif os.path.isfile(output_models):
-            ml_models = gammalib.GModels(output_models)
-        else:
-            raise Exception("Cannot proceed with ctlike")
-        saved = False
-        if (save and force) or (save and not os.path.isfile(output_models)):
-            like.save()
-            saved = True
-        if saved and self.verbosity > 1:
-            print("File {} created.".format(output_models), file=sys.stderr)
-        return like
+from lib.exporter.timeslice import TimeSliceExporter
+from lib.ctoolswrapper import CToolsWrapper
 
 SOURCE = { "name": "run0406_ID000126", "ra": 33.057, "dec": -51.841, }
 ENERGY = { "min": 0.03, "max": 150.0 }
 TIME_SELECTION_SLOTS = [600, 100, 60, 30, 10, 5]
 
 # python explore_fits.py run0406_ID000126.fits --template-model run0406_ID000126.xml --tmax 1800
+# python explore_fits.py run0406_ID000126.fits --template-model run0406_ID000126.xml --tmax 1800 --model source_model.xml --dec-shift 0.5 --dir dec_0.5 --save -v
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Create an obeservations list from a spectra fits")
     parser.add_argument("input_fits",          help="the fits file with times/energies/spectra data")
@@ -161,7 +38,7 @@ if __name__ == "__main__":
             print("The data dir already exists", file=sys.stderr)
 
     # create events file for each valid time slice
-    sobs = SourceObs({ 'name': SOURCE['name'], 'ra': SOURCE['ra'], 'dec': SOURCE['dec'], 'energy_min': ENERGY['min'], 'energy_max': ENERGY['max'], 'seed': args.seed }, verbosity=args.verbose)
+    sobs = CToolsWrapper({ 'name': SOURCE['name'], 'ra': SOURCE['ra'], 'dec': SOURCE['dec'], 'energy_min': ENERGY['min'], 'energy_max': ENERGY['max'], 'seed': args.seed }, verbosity=args.verbose)
 
     # http://cta.irap.omp.eu/ctools/users/user_manual/observations.html
     # http://cta.irap.omp.eu/ctools/users/glossary.html#glossary-obsdef
@@ -209,8 +86,12 @@ if __name__ == "__main__":
     # maximum likelihood
     like_models_file = os.path.join(working_dir, "ml_result.xml")
     like_log_file    = os.path.join(working_dir, "ctlike.log")
-    like = sobs.ctlike_run(phagen_obs_list, phagen_obs_list.models(), output_models=like_models_file, logfile=like_log_file, force=args.force)
+    like = sobs.ctlike_run(phagen_obs_list, input_models=phagen_obs_list.models(), output_models=like_models_file, log_file=like_log_file, force=args.force, save=args.save)
+    # like = sobs.ctlike_run(onoff_obs_file, input_models=onoff_model_file, output_models=like_models_file, log_file=like_log_file, force=args.force)
     if args.verbose > 0:
         print("Maximum Likelihood:\n", like)
+        print(like.obs())
+        print(like.obs().models())
+
 
     exit(0)
