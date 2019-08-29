@@ -40,8 +40,8 @@ class CToolsWrapper:
         sim["irf"]   = self.irf
         sim["logfile"] = log_file
         if force or not os.path.isfile(events_file):
-            sim.run()
             sim.logFileOpen()
+            sim.run()
         else:
             container = gammalib.GObservations()
             gcta_obs = gammalib.GCTAObservation(events_file)
@@ -83,8 +83,8 @@ class CToolsWrapper:
         phagen["prefix"]   = prefix
         phagen["logfile"]  = log_file
         if force or not os.path.isfile(output_obs_list) or not os.path.isfile(output_model):
-            phagen.run()
             phagen.logFileOpen()
+            phagen.run()
         elif os.path.isfile(output_obs_list) and os.path.isfile(output_model):
             onoff_obs = gammalib.GObservations(output_obs_list)
             onoff_obs.models(gammalib.GModels(output_model))
@@ -112,8 +112,8 @@ class CToolsWrapper:
         like["outmodel"] = output_models
         like["logfile"]  = log_file
         if force or not os.path.isfile(output_models):
-            like.run()
             like.logFileOpen()
+            like.run()
         elif os.path.isfile(output_models):
             ml_models = gammalib.GModels(output_models)
         else:
