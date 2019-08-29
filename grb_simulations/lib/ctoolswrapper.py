@@ -55,6 +55,42 @@ class CToolsWrapper:
             print("Events file '{}' saved. time [{}-{}]".format(sim["outevents"].value(), tstart, tstop), file=sys.stderr)
         return sim
 
+    def selection_run(self, input_obs_list, output_obs_list, tmin=0, tmax=None, prefix='selected_', log_file='ctselect.log', force=False, save=False):
+        if tmin < 0 or tmax < 1 or tmin >= tmax:
+            raise Exception("ctselect needs better tmin/tmax")
+        select = ctools.ctselect()
+        if isinstance(input_obs_list, gammalib.GObservations):
+            select.obs(input_obs_list)
+        elif os.path.isfile(input_obs_list):
+            # observations list from file
+            select["inobs"] = input_obs_list
+        else:
+            raise Exception('Cannot understand input obs list for csphagen')
+        select["rad"] = "INDEF"
+        select["ra"] = "INDEF"
+        select["dec"] = "INDEF"
+        select["tmin"] = tmin
+        select["tmax"] = tmax
+        select["emin"] = "INDEF"
+        select["emax"] = "INDEF"
+        select["prefix"] = prefix
+        select["outobs"] = output_obs_list
+        select["logfile"] = log_file
+        if force or not os.path.isfile(output_obs_list):
+            select.logFileOpen()
+            select.run()
+        elif os.path.isfile(output_obs_list):
+            select = ctools.ctselect(gammalib.GObservations(output_obs_list))
+        else:
+            raise Exception("Cannot proceed with ctselect")
+        saved = False
+        if (save and force) or (save and not os.path.isfile(output_obs_list)):
+            select.save()
+            saved = True
+        if saved and self.verbosity > 1:
+            print("Files {} created.".format(output_obs_list), file=sys.stderr)
+        return select
+
     def csphagen_run(self, input_obs_list, input_model, source_rad=0.2, output_obs_list='onoff_obs.xml', output_model='onoff_result.xml', log_file='csphagen.log', prefix='onoff', force=False, save=False):
         phagen = cscripts.csphagen()
         if isinstance(input_obs_list, gammalib.GObservations):
