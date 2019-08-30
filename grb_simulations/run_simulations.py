@@ -45,7 +45,7 @@ for s in time_slices:
     tstop = float(s['tsec'])
     if args.tmax is not None:
         if tstart >= args.tmax:
-            print("Stop time slices loop at slice {}".format(s['id']), file=sys.stderr)
+            print("Stop time slices loop at slice {} where time >= limit".format(s['id']), file=sys.stderr)
             break
         if tstop > args.tmax:
             tstop = args.tmax
