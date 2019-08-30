@@ -2,6 +2,7 @@ import cscripts
 import ctools
 import gammalib
 import os
+import sys
 
 class CToolsWrapper:
     def __init__(self, args, verbosity=0):
@@ -52,7 +53,7 @@ class CToolsWrapper:
             sim.save()
             saved = True
         if saved and self.verbosity > 1:
-            print("Events file '{}' saved. time [{}-{}]".format(sim["outevents"].value(), tstart, tstop), file=sys.stderr)
+            print("Events file '{}' saved. time [{}-{}]".format(sim["outevents"].value(), time[0], time[1]), file=sys.stderr)
         return sim
 
     def selection_run(self, input_obs_list, output_obs_list, tmin=0, tmax=None, prefix='selected_', log_file='ctselect.log', force=False, save=False):
