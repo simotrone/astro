@@ -1,7 +1,6 @@
 from astropy.io import fits
 from defusedxml.ElementTree import parse
 from lib.exporter.csv import CSVExporter as csvex
-import csv
 import os
 import sys
 
