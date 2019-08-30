@@ -1,43 +1,14 @@
 import argparse
-import csv
 import gammalib
-import math
 import os
 import sys
 from lib.ctoolswrapper import CToolsWrapper
 from lib.exporter.csv import CSVExporter as csvex
+from lib.utils import Utils.*
 
 SOURCE = { "name": "run0406_ID000126", "ra": 33.057, "dec": -51.841, }
 ENERGY = { "min": 0.03, "max": 150.0 }
 TIME_SELECTION_SLOTS = [600, 100, 60, 30, 10, 5]
-
-# verified with https://docs.gammapy.org/0.8/stats/index.html#li-ma-significance
-def li_ma (n_on, n_off, alpha):
-    if n_on <= 0 or n_off <= 0 or alpha == 0:
-        return None
-    fc = (1 + alpha) / alpha
-    fb = n_on / (n_on + n_off)
-    f  = fc * fb
-    gc = 1 + alpha
-    gb = n_off / (n_on + n_off)
-    g  = gc * gb
-    first  = n_on * math.log(f)
-    second = n_off * math.log(g)
-    fullb   = first + second
-    return math.sqrt(2) * math.sqrt(fullb)
-
-def read_timeslices_tsv(filename):
-    ts = []
-    with open(filename, mode='r', newline='\n') as fh:
-        reader = csv.reader(fh, delimiter='\t')
-        headers = next(reader)
-        for row in reader:
-            ts.append(dict(zip(headers, row)))
-    return ts
-
-def save_results(filename, array, fields=None):
-    csvex.save(filename, array, delimiter="\t", headers=fields)
-    
 
 # python explore_fits.py timeslices.tsv --tmax 1800 --model source_model.xml --dec-shift 0.5 --dir dec_0.5 --save -v
 if __name__ == "__main__":
@@ -155,5 +126,5 @@ if __name__ == "__main__":
                          'li_ma': li_ma(pha_on.counts(), pha_off.counts(), pha_on.backscal(pha_on.size()-1))
                          })
 
-    save_results(os.path.join(working_dir, 'results.tsv'), results, fields=list(results[0].keys()))
+    csvex.save(os.path.join(working_dir, 'results.tsv'), results, headers=list(results[0].keys()), delimiter="\t")
     exit(0)
