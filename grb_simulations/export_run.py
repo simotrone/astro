@@ -1,8 +1,9 @@
 import argparse
 import os
+import sys
 from lib.exporter.timeslice import TimeSliceExporter
 
-# python export_run.py run0406_ID000126.fits --template-model run0406_ID000126.xml --tmax 1800
+# python export_run.py run0406_ID000126.fits run0406_ID000126.xml -v --save data/timeslices.tsv --dir data
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Create an obeservations list from a spectra fits")
     parser.add_argument("input_fits",     help="the fits file with times/energies/spectra data")
@@ -19,6 +20,7 @@ if __name__ == "__main__":
     time_slices = exporter.export(force=args.force)
     if args.save:
         exporter.save(args.save, time_slices, headers=['id', 'tsec', 'model_file', 'ene_flux_file'], delimiter="\t")
+        print("Timeslices saved in {}".format(args.save), file=sys.stderr)
     elif args.verbose:
         print(time_slices)
     exit(0)
