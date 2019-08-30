@@ -153,6 +153,7 @@ class CToolsWrapper:
             like.run()
         elif os.path.isfile(output_models):
             ml_models = gammalib.GModels(output_models)
+            like.obs().models(ml_models)
         else:
             raise Exception("Cannot proceed with ctlike")
         saved = False
