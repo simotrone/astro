@@ -1,13 +1,30 @@
 import argparse
 import csv
 import gammalib
+import math
 import os
 import sys
 from lib.ctoolswrapper import CToolsWrapper
+from lib.exporter.csv import CSVExporter as csvex
 
 SOURCE = { "name": "run0406_ID000126", "ra": 33.057, "dec": -51.841, }
 ENERGY = { "min": 0.03, "max": 150.0 }
 TIME_SELECTION_SLOTS = [600, 100, 60, 30, 10, 5]
+
+# verified with https://docs.gammapy.org/0.8/stats/index.html#li-ma-significance
+def li_ma (n_on, n_off, alpha):
+    if n_on <= 0 or n_off <= 0 or alpha == 0:
+        return None
+    fc = (1 + alpha) / alpha
+    fb = n_on / (n_on + n_off)
+    f  = fc * fb
+    gc = 1 + alpha
+    gb = n_off / (n_on + n_off)
+    g  = gc * gb
+    first  = n_on * math.log(f)
+    second = n_off * math.log(g)
+    fullb   = first + second
+    return math.sqrt(2) * math.sqrt(fullb)
 
 def read_timeslices_tsv(filename):
     ts = []
@@ -17,6 +34,10 @@ def read_timeslices_tsv(filename):
         for row in reader:
             ts.append(dict(zip(headers, row)))
     return ts
+
+def save_results(filename, array, fields=None):
+    csvex.save(filename, array, delimiter="\t", headers=fields)
+    
 
 # python explore_fits.py timeslices.tsv --tmax 1800 --model source_model.xml --dec-shift 0.5 --dir dec_0.5 --save -v
 if __name__ == "__main__":
@@ -64,7 +85,12 @@ if __name__ == "__main__":
         sim = sobs.simulation_run(s['model_file'], events_file, ra=SOURCE['ra']+args.ra_shift, dec=SOURCE['dec']+args.dec_shift, time=[tstart, tstop], log_file=log_file, force=args.force, save=args.save)
         if sim.obs().size() != 1:
             raise Exception("None or too many simulated observations")
-        gcta_obs = sim.obs()[0] # GCTAObservation
+        gcta_obs = None
+        if args.save:
+            # only the files list
+            gcta_obs = gammalib.GCTAObservation(events_file)
+        else:
+            gcta_obs = sim.obs()[0] # GCTAObservation
         gcta_obs.id("{0:02d}".format(index))
         gcta_obs.name("{0}_{1:02d}".format(SOURCE["name"], index))
         sim_obs_list.append(gcta_obs)
@@ -75,6 +101,9 @@ if __name__ == "__main__":
     if args.save:
         sim_obs_list.save(os.path.join(working_dir, 'sim_obs_list.xml'))
 
+    data_to_analyze = []
+    data_to_analyze.append({ 'tmax': args.tmax, 'obs_list': sim_obs_list.clone(), 'dir': working_dir })
+
     # selections
     for t in TIME_SELECTION_SLOTS:
         sel_working_dir = os.path.join(working_dir, "sel_"+str(t))
@@ -83,30 +112,48 @@ if __name__ == "__main__":
         sel_log_file = os.path.join(sel_working_dir, "ctselect.log")
         sel_obs_file = os.path.join(sel_working_dir, "sel_obs_list.xml")
         select = sobs.selection_run(sim_obs_list, output_obs_list=sel_obs_file, tmin=0, tmax=t, prefix=os.path.join(sel_working_dir, "selected_"), log_file=sel_log_file, force=args.force, save=args.save)
+        data_to_analyze.append({ 'tmax': t, 'obs_list': select.obs().clone(), 'dir': sel_working_dir })
 
-    ### csphagen / onoff analysis
-    onoff_log_file = os.path.join(working_dir, "csphagen.log")
-    onoff_obs_file = os.path.join(working_dir, "onoff_obs_list.xml")
-    onoff_model_file = os.path.join(working_dir, "onoff_result.xml")
-    phagen = sobs.csphagen_run(sim_obs_list, input_model=args.model, source_rad=0.2, output_obs_list=onoff_obs_file, output_model=onoff_model_file, log_file=onoff_log_file, prefix=os.path.join(working_dir, "onoff"), force=args.force, save=args.save)
-    phagen_obs_list = phagen.obs()
-    if phagen_obs_list.size() == 0:
-        print("csphagen doesn't provide an on/off observation list")
-        exit(1)
-    if args.verbose > 0:
-        print("OnOff list:\n", phagen_obs_list)
-        print(phagen_obs_list[0]) # GCTAOnOffObservation
-        print(phagen_obs_list.models())
+    # on/off analysis
+    results = []
+    for d in data_to_analyze:
+        ### csphagen / onoff analysis
+        onoff_log_file = os.path.join(d["dir"], "csphagen.log")
+        onoff_obs_file = os.path.join(d["dir"], "onoff_obs_list.xml")
+        onoff_model_file = os.path.join(d["dir"], "onoff_result.xml")
+        onoff_prefix = os.path.join(d["dir"], "onoff")
+        phagen = sobs.csphagen_run(d["obs_list"], input_model=args.model, source_rad=0.2, output_obs_list=onoff_obs_file, output_model=onoff_model_file, log_file=onoff_log_file, prefix=onoff_prefix, force=args.force, save=args.save)
+        phagen_obs_list = phagen.obs()
+        if phagen_obs_list.size() == 0:
+            print("csphagen doesn't provide an on/off observation list for {}/{}".format(d["time"], d["dir"]))
+            exit(1)
+        if args.verbose > 1:
+            print("OnOff list:\n", phagen_obs_list)
+            print(phagen_obs_list[0]) # GCTAOnOffObservation
+            print(phagen_obs_list.models())
 
-    # maximum likelihood
-    like_models_file = os.path.join(working_dir, "ml_result.xml")
-    like_log_file    = os.path.join(working_dir, "ctlike.log")
-    like = sobs.ctlike_run(phagen_obs_list, input_models=phagen_obs_list.models(), output_models=like_models_file, log_file=like_log_file, force=args.force, save=args.save)
-    # like = sobs.ctlike_run(onoff_obs_file, input_models=onoff_model_file, output_models=like_models_file, log_file=like_log_file, force=args.force)
-    if args.verbose > 0:
-        print("Maximum Likelihood:\n", like.opt())
-        print(like.obs())
-        print(like.obs().models())
+        # maximum likelihood against onoff results
+        like_models_file = os.path.join(d["dir"], "ml_result.xml")
+        like_log_file    = os.path.join(d["dir"], "ctlike.log")
+        like = sobs.ctlike_run(phagen_obs_list, input_models=phagen_obs_list.models(), output_models=like_models_file, log_file=like_log_file, force=args.force, save=args.save)
+        if args.verbose > 1:
+            print("Maximum Likelihood:\n", like.opt())
+            print(like.obs())
+            print(like.obs().models())
 
+        # summary
+        pha_on  = phagen_obs_list[0].on_spec()
+        pha_off = phagen_obs_list[0].off_spec()
+        ml_models = like.obs().models()
+        results.append({ 'name': args.dir,
+                         'seed': args.seed,
+                         'tmax': d['tmax'],
+                         'ts': ml_models[0].ts(),
+                         'on_count': pha_on.counts(),
+                         'off_count': pha_off.counts(),
+                         'alpha': pha_on.backscal(pha_on.size()-1), # spectrum bins-1
+                         'li_ma': li_ma(pha_on.counts(), pha_off.counts(), pha_on.backscal(pha_on.size()-1))
+                         })
 
+    save_results(os.path.join(working_dir, 'results.tsv'), results, fields=list(results[0].keys()))
     exit(0)
