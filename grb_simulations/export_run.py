@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 from lib.exporter.timeslice import TimeSliceExporter
+from lib.exporter.csv import CSVExporter as csvex
 
 # python export_run.py run0406_ID000126.fits run0406_ID000126.xml -v --save data/timeslices.tsv --dir data
 if __name__ == "__main__":
@@ -19,7 +20,7 @@ if __name__ == "__main__":
     exporter = TimeSliceExporter(args.input_fits, template_model=args.template_model, savings_dir=args.dir, verbosity=args.verbose, tmax=args.tmax)
     time_slices = exporter.export(force=args.force)
     if args.save:
-        exporter.save(args.save, time_slices, headers=['id', 'tsec', 'model_file', 'ene_flux_file'], delimiter="\t")
+        csvex.save(args.save, time_slices, headers=['id', 'tsec', 'model_file', 'ene_flux_file'], delimiter="\t")
         print("Timeslices saved in {}".format(args.save), file=sys.stderr)
     elif args.verbose:
         print(time_slices)
