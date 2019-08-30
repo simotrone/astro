@@ -50,7 +50,7 @@ class TimeSliceExporter:
             mev_spectra = [f/1000 for f in spectra[i]]
             time_slice_filename = os.path.join(self.savings_dir, "spec_{0:02d}.tsv".format(i))
             if force or not os.path.isfile(time_slice_filename):
-                self.write_slice_tsv(time_slice_filename, mev_energies, mev_spectra)
+                self.write_energies_spectra_tsv(time_slice_filename, mev_energies, mev_spectra)
             elif self.verbosity > 1:
                 print("The slice file {} already exists".format(time_slice_filename), file=sys.stderr)
             # writing model xml if template was provided
@@ -74,20 +74,36 @@ class TimeSliceExporter:
                 break
         return done
 
+    # {'id': 0, 'tsec': 0.1, 'ene_flux_file': './data/spec_00.tsv', 'model_file': './data/run0406_ID000126_00.xml'},
+    # {'id': 1, 'tsec': 0.12589253, 'ene_flux_file': './data/spec_01.tsv', 'model_file': './data/run0406_ID000126_01.xml'},
+    # {'id': 2, 'tsec': 0.15848932, 'ene_flux_file': './data/spec_02.tsv', 'model_file': './data/run0406_ID000126_02.xml'}, 
+    # ...
+    @staticmethod
+    def save(output_filename, data, headers=None, delimiter=" "):
+        if not isinstance(data, list):
+            raise Exception('Need a data list to write')
+        with open(output_filename, mode='w', newline="\n") as fh:
+            writer = None
+            csv_options = { 'delimiter': delimiter, 'quotechar':'"', 'quoting':csv.QUOTE_MINIMAL }
+            if headers:
+                writer = csv.DictWriter(fh, fieldnames=headers, **csv_options)
+                writer.writeheader()
+            else:
+                writer = csv.writer(fh, **csv_options)
+            writer.writerows(data)
+
     # http://cta.irap.omp.eu/gammalib-devel/doxygen/classGModelSpectralFunc.html#a922f555636e58e519871913bcd76c5d8
     # http://cta.irap.omp.eu/gammalib-devel/doxygen/classGCsv.html#details
     # GCsv: This class implements a table of std::string elements that is loaded
     #       from a comma-separated value ASCII file. The comma-separation string
     #       can be specified upon loading of the file (by default the class
     #       assumes that elements are separated by a white space).
-    @staticmethod
-    def write_slice_tsv(output_filename, energies, spectra):
+    @classmethod
+    def write_energies_spectra_tsv(cls, output_filename, energies, spectra):
         if not len(energies) == len(spectra):
             raise Exception('Need the same number of elements between energies and spectra')
-        with open(output_filename, mode='w', newline="\n") as fh:
-            writer = csv.writer(fh, delimiter=" ", quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            for i, ene in enumerate(energies):
-                writer.writerow([ene, spectra[i]])
+        data = [ [energy, spectra[i]] for i, energy in enumerate(energies) ]
+        cls.save(output_filename, data, delimiter=" ")
 
     @classmethod
     def write_linked_model(cls, model_tree, ref_file, output_xml_fn):
