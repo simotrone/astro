@@ -1,5 +1,6 @@
 from astropy.io import fits
 from defusedxml.ElementTree import parse
+from lib.exporter.csv import CSVExporter as csvex
 import csv
 import os
 import sys
@@ -74,24 +75,6 @@ class TimeSliceExporter:
                 break
         return done
 
-    # {'id': 0, 'tsec': 0.1, 'ene_flux_file': './data/spec_00.tsv', 'model_file': './data/run0406_ID000126_00.xml'},
-    # {'id': 1, 'tsec': 0.12589253, 'ene_flux_file': './data/spec_01.tsv', 'model_file': './data/run0406_ID000126_01.xml'},
-    # {'id': 2, 'tsec': 0.15848932, 'ene_flux_file': './data/spec_02.tsv', 'model_file': './data/run0406_ID000126_02.xml'}, 
-    # ...
-    @staticmethod
-    def save(output_filename, data, headers=None, delimiter=" "):
-        if not isinstance(data, list):
-            raise Exception('Need a data list to write')
-        with open(output_filename, mode='w', newline="\n") as fh:
-            writer = None
-            csv_options = { 'delimiter': delimiter, 'quotechar':'"', 'quoting':csv.QUOTE_MINIMAL }
-            if headers:
-                writer = csv.DictWriter(fh, fieldnames=headers, **csv_options)
-                writer.writeheader()
-            else:
-                writer = csv.writer(fh, **csv_options)
-            writer.writerows(data)
-
     # http://cta.irap.omp.eu/gammalib-devel/doxygen/classGModelSpectralFunc.html#a922f555636e58e519871913bcd76c5d8
     # http://cta.irap.omp.eu/gammalib-devel/doxygen/classGCsv.html#details
     # GCsv: This class implements a table of std::string elements that is loaded
@@ -103,7 +86,7 @@ class TimeSliceExporter:
         if not len(energies) == len(spectra):
             raise Exception('Need the same number of elements between energies and spectra')
         data = [ [energy, spectra[i]] for i, energy in enumerate(energies) ]
-        cls.save(output_filename, data, delimiter=" ")
+        csvex.save(output_filename, data, delimiter=" ")
 
     @classmethod
     def write_linked_model(cls, model_tree, ref_file, output_xml_fn):
