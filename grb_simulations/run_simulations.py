@@ -95,8 +95,8 @@ for d in data_to_analyze:
     phagen = sobs.csphagen_run(d["obs_list"], input_model=args.model, source_rad=0.2, output_obs_list=onoff_obs_file, output_model=onoff_model_file, log_file=onoff_log_file, prefix=onoff_prefix, force=args.force, save=args.save)
     phagen_obs_list = phagen.obs()
     if phagen_obs_list.size() == 0:
-        print("csphagen doesn't provide an on/off observation list for {}/{}".format(d["time"], d["dir"]))
-        exit(1)
+        print("csphagen doesn't provide an on/off observation list for {}/{}".format(d["tmax"], d["dir"]), file=sys.stderr)
+        break
     if args.verbose > 1:
         print("OnOff list:\n", phagen_obs_list)
         print(phagen_obs_list[0]) # GCTAOnOffObservation
