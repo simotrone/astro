@@ -125,5 +125,9 @@ for d in data_to_analyze:
                      'li_ma': li_ma(pha_on.counts(), pha_off.counts(), pha_on.backscal(pha_on.size()-1))
                      })
 
-csvex.save(os.path.join(working_dir, 'results.tsv'), results, headers=list(results[0].keys()), delimiter="\t")
+try:
+	csvex.save(os.path.join(working_dir, 'results.tsv'), results, headers=list(results[0].keys()), delimiter="\t")
+except:
+	print(results, file=sys.stderr)
+
 exit(0)
