@@ -64,6 +64,8 @@ for s in time_slices:
     gcta_obs.id("{0:02d}".format(index))
     gcta_obs.name("{0}_{1:02d}".format(SOURCE["name"], index))
     sim_obs_list.append(gcta_obs)
+    if args.verbose > 1:
+        print("Simulation {} done.".format(gcta_obs.name), file=sys.stderr)
     tstart=tstop
 
 if args.verbose > 0:
@@ -83,6 +85,8 @@ for t in TIME_SELECTION_SLOTS:
     sel_obs_file = os.path.join(sel_working_dir, "sel_obs_list.xml")
     select = sobs.selection_run(sim_obs_list, output_obs_list=sel_obs_file, tmin=0, tmax=t, prefix=os.path.join(sel_working_dir, "selected_"), log_file=sel_log_file, force=args.force, save=args.save)
     data_to_analyze.append({ 'tmax': t, 'obs_list': select.obs().clone(), 'dir': sel_working_dir })
+    if args.verbose > 1:
+        print("Selection {} done.".format(sel_working_dir), file=sys.stderr)
 
 # on/off analysis
 results = []
@@ -98,6 +102,8 @@ for d in data_to_analyze:
         print("csphagen doesn't provide an on/off observation list for {}/{}".format(d["tmax"], d["dir"]), file=sys.stderr)
         break
     if args.verbose > 1:
+        print("on/off {} done.".format(d["dir"]), file=sys.stderr)
+    if args.verbose > 2:
         print("OnOff list:\n", phagen_obs_list)
         print(phagen_obs_list[0]) # GCTAOnOffObservation
         print(phagen_obs_list.models())
@@ -107,6 +113,8 @@ for d in data_to_analyze:
     like_log_file    = os.path.join(d["dir"], "ctlike.log")
     like = sobs.ctlike_run(phagen_obs_list, input_models=phagen_obs_list.models(), output_models=like_models_file, log_file=like_log_file, force=args.force, save=args.save)
     if args.verbose > 1:
+        print("maxlike {} done.".format(d["dir"]), file=sys.stderr)
+    if args.verbose > 2:
         print("Maximum Likelihood:\n", like.opt())
         print(like.obs())
         print(like.obs().models())
