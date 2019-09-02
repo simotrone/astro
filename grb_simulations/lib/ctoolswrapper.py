@@ -40,6 +40,7 @@ class CToolsWrapper:
         sim["caldb"] = self.caldb
         sim["irf"]   = self.irf
         sim["logfile"] = log_file
+        sim["nthreads"] = 10
         if force or not os.path.isfile(events_file):
             sim.logFileOpen()
             sim.run()
@@ -119,6 +120,7 @@ class CToolsWrapper:
         phagen["outmodel"] = output_model
         phagen["prefix"]   = prefix
         phagen["logfile"]  = log_file
+        phagen["nthreads"] = 10
         if force or not os.path.isfile(output_obs_list) or not os.path.isfile(output_model):
             phagen.logFileOpen()
             phagen.run()
@@ -148,6 +150,7 @@ class CToolsWrapper:
             raise Exception('Cannot understand input obs list for ctlike')
         like["outmodel"] = output_models
         like["logfile"]  = log_file
+        like["nthreads"] = 10
         if force or not os.path.isfile(output_models):
             like.logFileOpen()
             like.run()
