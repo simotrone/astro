@@ -134,7 +134,7 @@ for d in data_to_analyze:
                      })
 
 try:
-	csvex.save(os.path.join(working_dir, 'results.tsv'), results, headers=list(results[0].keys()), delimiter="\t")
+	csvex.save(os.path.join(args.dir, 'results_{}.tsv'.format(str(args.seed))), results, headers=list(results[0].keys()), delimiter="\t")
 except:
 	print(results, file=sys.stderr)
 
