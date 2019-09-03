@@ -11,8 +11,9 @@ source $VENV_HOME/bin/activate
 pip install --upgrade pip
 pip install astropy
 # Could need tkinter on box (ex: dnf install python3-tkinter)
-pip install matplotlib
+pip install matplotlib seaborn
 pip install defusedxml
+pip install numpy scipy
 pip freeze
 
 # more libs
