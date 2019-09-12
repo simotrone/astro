@@ -1,4 +1,6 @@
 import csv
+import os
+
 class CSVExporter:
     # {'id': 0, 'tsec': 0.1, 'ene_flux_file': './data/spec_00.tsv', 'model_file': './data/run0406_ID000126_00.xml'},
     # {'id': 1, 'tsec': 0.12589253, 'ene_flux_file': './data/spec_01.tsv', 'model_file': './data/run0406_ID000126_01.xml'},
@@ -18,3 +20,23 @@ class CSVExporter:
                 writer = csv.writer(fh, **csv_options)
             writer.writerows(data)
 
+    # @staticmethod
+    def load(input_filename, header=False, sep=' '):
+        if not os.path.isfile(input_filename):
+            raise Exception('Cannot read {}'.format(input_filename))
+        data = []
+        with open(input_filename, newline='\n') as fh:
+            reader = csv.reader(fh, delimiter=sep)
+
+            if header:
+                headers_row = next(reader, None)
+
+            for row in reader:
+                if header:
+                    d = {}
+                    for i, h in enumerate(headers_row):
+                        d[h] = row[i]
+                else:
+                    d = row
+                data.append(d)
+        return data
