@@ -17,6 +17,7 @@ class CToolsWrapper:
             ['energy_max', 150.0],
             ['caldb',    'prod2'],
             ['irf', 'South_0.5h'],
+            ['nthreads',   10],
         ]
         for f in fields:
             field, default = f
@@ -40,7 +41,7 @@ class CToolsWrapper:
         sim["caldb"] = self.caldb
         sim["irf"]   = self.irf
         sim["logfile"] = log_file
-        sim["nthreads"] = 10
+        sim["nthreads"] = self.nthreads
         if force or not os.path.isfile(events_file):
             sim.logFileOpen()
             sim.run()
@@ -120,7 +121,7 @@ class CToolsWrapper:
         phagen["outmodel"] = output_model
         phagen["prefix"]   = prefix
         phagen["logfile"]  = log_file
-        phagen["nthreads"] = 10
+        phagen["nthreads"] = self.nthreads
         if force or not os.path.isfile(output_obs_list) or not os.path.isfile(output_model):
             phagen.logFileOpen()
             phagen.run()
@@ -150,7 +151,7 @@ class CToolsWrapper:
             raise Exception('Cannot understand input obs list for ctlike')
         like["outmodel"] = output_models
         like["logfile"]  = log_file
-        like["nthreads"] = 10
+        like["nthreads"] = self.nthreads
         if force or not os.path.isfile(output_models):
             like.logFileOpen()
             like.run()
