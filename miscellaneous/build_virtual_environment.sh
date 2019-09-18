@@ -25,6 +25,7 @@ pip freeze
 #   cfitsio
 #   cfitsio-devel
 #   doxygen  (optional)
+#   readline-devel
 function install_ctools_lib() {
 	local DOWNLOADS=$PWD/downloads
 	mkdir $DOWNLOADS
@@ -43,8 +44,9 @@ function install_ctools_lib() {
 # install ctools:
 # install_ctools_lib
 
-# ctools activation:
-export GAMMALIB=$VENV_HOME
-export CTOOLS=$VENV_HOME
-source $GAMMALIB/bin/gammalib-init.sh
-source $CTOOLS/bin/ctools-init.sh
+source ctools_activation.sh $VENV_HOME
+# to get the ctools activation:
+# export GAMMALIB=$VENV_HOME
+# export CTOOLS=$VENV_HOME
+# source $GAMMALIB/bin/gammalib-init.sh
+# source $CTOOLS/bin/ctools-init.sh
