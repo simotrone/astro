@@ -50,6 +50,7 @@ class CToolsWrapper:
             gcta_obs = gammalib.GCTAObservation(events_file)
             container.append(gcta_obs)
             sim.obs(container)
+            sim.obs().models(gammalib.GModels(model_file))
         saved = False
         if (save and force) or (save and not os.path.isfile(events_file)):
             sim.save()
@@ -168,4 +169,41 @@ class CToolsWrapper:
             print("File {} created.".format(output_models), file=sys.stderr)
         return like
 
+    def csspec_run(self, input_obs_list, input_models=None, enumbins=20, output_file='spectrum.fits', log_file='csspec.log', force=False, save=False):
+        spec = cscripts.csspec()
+        if isinstance(input_obs_list, gammalib.GObservations):
+            spec.obs(input_obs_list)
+        elif os.path.isfile(input_obs_list) and os.path.isfile(input_models):
+            # observations list from file
+            spec["inobs"] = input_obs_list
+            spec["inmodel"] = input_models
+        else:
+            raise Exception('Cannot understand input obs list for csspec')
+        spec["srcname"] = self.name
+        spec["caldb"]   = self.caldb
+        spec["irf"]     = self.irf
+        spec["method"] = "AUTO"
+        spec["emin"] = 0.03
+        spec["emax"] = 150.0
+        spec['ebinalg'] = "LOG"
+        spec["enumbins"] = enumbins
+        spec['calc_ts']   = True
+        spec['calc_ulim'] = True
+        spec['outfile']  = output_file
+        spec["logfile"]  = log_file
+        spec["nthreads"] = self.nthreads
+        if force or not os.path.isfile(output_file):
+            spec.logFileOpen()
+            spec.run()
+        elif os.path.isfile(output_file):
+            spec._fits = gammalib.GFits(output_file)
+        else:
+            raise Exception("Cannot proceed with csspec")
+        saved = False
+        if (save and force) or (save and not os.path.isfile(output_file)):
+            spec.save()
+            saved = True
+        if saved and self.verbosity > 1:
+            print("File {} created.".format(output_file), file=sys.stderr)
+        return spec
 
