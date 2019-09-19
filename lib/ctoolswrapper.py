@@ -185,7 +185,7 @@ class CToolsWrapper:
         spec["method"] = "AUTO"
         spec["emin"] = 0.03
         spec["emax"] = 150.0
-        spec['ebinalg'] = "LOG"
+        spec['ebinalg']  = "LOG"
         spec["enumbins"] = enumbins
         spec['calc_ts']   = True
         spec['calc_ulim'] = True
