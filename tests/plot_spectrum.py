@@ -94,19 +94,20 @@ for i in range(table.nrows()):
         ul_ed_engs.append(c_ed.real(i))
         ul_eu_engs.append(c_eu.real(i))
 
-    print(str(got), ts, flx, e_flx, sep="\t")
+    print(str(got), ts, flx, e_flx, sep='\t')
 
 # Set upper limit errors
 yerr = [0.6 * x for x in ul_flux]
 
 # Plot the spectrum
-plt.figure()
+plt.figure(figsize=(8,5))
 plt.loglog()
 plt.grid()
 plt.errorbar(energies, flux, yerr=e_flux, xerr=[ed_engs, eu_engs], fmt='ro')
 plt.errorbar(ul_energies, ul_flux, xerr=[ul_ed_engs, ul_eu_engs], yerr=yerr, uplims=True, fmt='ro')
 plt.xlabel('Energy (TeV)')
 plt.ylabel(r'E$^2$ $\times$ dN/dE (erg cm$^{-2}$ s$^{-1}$)')
+plt.title('{} spectrum'.format(args.name))
 plt.show()
 
 
