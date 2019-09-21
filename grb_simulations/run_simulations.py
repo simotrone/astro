@@ -96,7 +96,7 @@ for d in data_to_analyze:
     onoff_obs_file = os.path.join(d["dir"], "onoff_obs_list.xml")
     onoff_model_file = os.path.join(d["dir"], "onoff_result.xml")
     onoff_prefix = os.path.join(d["dir"], "onoff")
-    phagen = sobs.csphagen_run(d["obs_list"], input_model=args.model, source_rad=0.2, output_obs_list=onoff_obs_file, output_model=onoff_model_file, log_file=onoff_log_file, prefix=onoff_prefix, force=args.force, save=args.save)
+    phagen = sobs.csphagen_run(d["obs_list"], input_model=args.model, source_rad=0.2, output_obs_list=onoff_obs_file, output_model=onoff_model_file, log_file=onoff_log_file, prefix=onoff_prefix, stacked=True, force=args.force, save=args.save)
     phagen_obs_list = phagen.obs()
     if phagen_obs_list.size() == 0:
         print("csphagen doesn't provide an on/off observation list for {}/{}".format(d["tmax"], d["dir"]), file=sys.stderr)
