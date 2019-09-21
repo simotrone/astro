@@ -1,10 +1,15 @@
-import argparse
 from lib.ctoolswrapper import CToolsWrapper
-import os
+from lib.exporter.csv import CSVExporter as csvex
+from lib.utils import li_ma
+import argparse
 import logging
+import os
+import gammalib
 
-SOURCE = { "name": "Crab", "ra": 83.6331, "dec": 22.0145, "model": "crab.xml" }
-ENERGY = { "min": 0.03, "max": 150.0 }
+SOURCE = { 'name': 'Crab', 'ra': 83.6331, 'dec': 22.0145, 'model': 'crab.xml' }
+ENERGY = { 'min': 0.03, 'max': 150.0 }
+GENERGY = { 'min': gammalib.GEnergy(ENERGY['min'], 'TeV'),
+            'max': gammalib.GEnergy(ENERGY['max'], 'TeV'), }
 TIME_SELECTION_SLOTS = [600, 100, 60, 30, 20, 10, 5]
 
 parser = argparse.ArgumentParser(description="Create simulations")
@@ -86,8 +91,10 @@ for d in data_to_analyze:
 
     pha_on  = phagen_obs_list[0].on_spec()
     pha_off = phagen_obs_list[0].off_spec()
-    # print("On count:", pha_on.counts())
-    # print("Off count:", pha_off.counts())
+    on_count  = pha_on.counts()
+    off_count = pha_off.counts()
+    alpha = pha_on.backscal(pha_on.size()-1) # spectrum bins-1
+    excess_count = on_count - alpha * off_count
 
     # maximum likelihood against onoff results
     like_models_file = os.path.join(d["dir"], "ml_result.xml")
@@ -98,24 +105,36 @@ for d in data_to_analyze:
     logging.debug(like.obs())
     logging.debug(like.obs().models())
 
-#    # summary
+    # summary
     ml_models = like.obs().models()
-    print(ml_models)
-    if not args.save:
+    if args.force or not os.path.isfile(like_models_file):
         ml_models.save(like_models_file)
-#    results.append({ 'name': args.dir,
-#                     'seed': args.seed,
-#                     'tmax': d['tmax'],
-#                     'ts': ml_models[0].ts(),
-#                     'on_count': pha_on.counts(),
-#                     'off_count': pha_off.counts(),
-#                     'alpha': pha_on.backscal(pha_on.size()-1), # spectrum bins-1
-#                     'li_ma': li_ma(pha_on.counts(), pha_off.counts(), pha_on.backscal(pha_on.size()-1))
-#                     })
-#
-#try:
-#	csvex.save(os.path.join(args.dir, 'results_{}.tsv'.format(str(args.seed))), results, headers=list(results[0].keys()), delimiter="\t")
-#except:
-#	print(results, file=sys.stderr)
+
+    spectral_model = ml_models[0].spectral()
+    flux  = spectral_model.flux(GENERGY['min'], GENERGY['max'])  # ph/cm²/s
+    eflux = spectral_model.eflux(GENERGY['min'], GENERGY['max']) # erg/cm²/s
+
+    results.append({ 'name': args.dir,
+                     'seed': args.seed,
+                     'tmax': d['tmax'],
+                     'ts': ml_models[0].ts(),
+                     'index_value': ml_models[0]['Index'].value(),
+                     'index_error': ml_models[0]['Index'].error(),
+                     'prefactor_value': ml_models[0]['Prefactor'].value(),
+                     'prefactor_error': ml_models[0]['Prefactor'].error(),
+                     'pivot_value': ml_models[0]['PivotEnergy'].value(),
+                     'pivot_error': ml_models[0]['PivotEnergy'].error(),
+                     'flux': flux,
+                     'eflux': eflux,
+                     'on_count': on_count,
+                     'off_count': off_count,
+                     'alpha': alpha,
+                     'excess_count': excess_count,
+                     'li_ma': li_ma(on_count, off_count, alpha), })
+
+try:
+	csvex.save(os.path.join(args.dir, 'results_{}.tsv'.format(str(args.seed))), results, headers=list(results[0].keys()), delimiter="\t")
+except:
+	print(results, file=sys.stderr)
 
 exit(0)
