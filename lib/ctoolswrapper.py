@@ -84,7 +84,10 @@ class CToolsWrapper:
             select.logFileOpen()
             select.run()
         elif os.path.isfile(output_obs_list):
-            select = ctools.ctselect(gammalib.GObservations(output_obs_list))
+            container = gammalib.GObservations()
+            gcta_obs = gammalib.GCTAObservation(output_obs_list)
+            container.append(gcta_obs)
+            select.obs(container)
         else:
             raise Exception("Cannot proceed with ctselect")
         saved = False
@@ -95,7 +98,7 @@ class CToolsWrapper:
             print("Files {} created.".format(output_obs_list), file=sys.stderr)
         return select
 
-    def csphagen_run(self, input_obs_list, input_model, source_rad=0.2, output_obs_list='onoff_obs.xml', output_model='onoff_result.xml', log_file='csphagen.log', prefix='onoff', force=False, save=False):
+    def csphagen_run(self, input_obs_list, input_model, source_rad=0.2, output_obs_list='onoff_obs.xml', output_model='onoff_result.xml', log_file='csphagen.log', prefix='onoff', ebinalg="LIN", enumbins=1, stacked=False, force=False, save=False):
         phagen = cscripts.csphagen()
         if isinstance(input_obs_list, gammalib.GObservations):
             phagen.obs(input_obs_list)
@@ -108,15 +111,15 @@ class CToolsWrapper:
         phagen["srcname"] = self.name
         phagen["caldb"]   = self.caldb
         phagen["irf"]     = self.irf
-        phagen["ebinalg"]  = "LIN"
+        phagen["ebinalg"]  = ebinalg
         phagen["emin"]     = self.energy_min
         phagen["emax"]     = self.energy_max
-        phagen["enumbins"] = 1
+        phagen["enumbins"] = enumbins
         phagen["coordsys"] = "CEL"
         phagen["ra"]    = self.ra
         phagen["dec"]   = self.dec
         phagen["rad"]   = source_rad
-        phagen["stack"] = True
+        phagen["stack"] = stacked
         phagen["bkgmethod"] = "REFLECTED"
         phagen["outobs"]   = output_obs_list
         phagen["outmodel"] = output_model
