@@ -138,18 +138,20 @@ def array_stats(arr):
 
 def print_data_summary(data):
     fields = [
-      #   h_format,      v_format,     title,         sub_t
-        [   '%15s',        '%15s',  'fs ref',  '==========', ],
-        [   '%10s',        '%10s',      'RA',          '==', ],
-        [   '%10s',        '%10s',     'Dec',         '===', ],
-        [    '%6s',         '%6d',    'tmax',        '====', ],
-        [    '%6s',         '%6d',   'seeds',       '=====', ],
-        [   '%16s', '%9.2f±%6.2f',      'TS',          '==', ],
-        [   '%15s', '%8.2f±%6.2f',    'N_on',        '====', ],
-        [   '%15s', '%8.2f±%6.2f',   'N_off',       '=====', ],
-        [   '%15s', '%8.2f±%6.2f',     'N_s',         '===', ],
-        [   '%11s', '%6.2f±%4.2f',   'Li&Ma',       '=====', ],
-        [    '%7s',       '%7.4f',   'alpha',       '=====', ],
+      #   h_format,         v_format,     title,         sub_t
+        [   '%15s',           '%15s',  'fs ref',  '==========', ],
+        [   '%10s',           '%10s',      'RA',          '==', ],
+        [   '%10s',           '%10s',     'Dec',         '===', ],
+        [    '%6s',            '%6d',    'tmax',        '====', ],
+        [    '%6s',            '%6d',   'seeds',       '=====', ],
+        [   '%16s',    '%9.2f±%6.2f',      'TS',          '==', ],
+        [   '%15s',    '%8.2f±%6.2f',    'N_on',        '====', ],
+        [   '%15s',    '%8.2f±%6.2f',   'N_off',       '=====', ],
+        [   '%15s',    '%8.2f±%6.2f',     'N_s',         '===', ],
+        [   '%11s',    '%6.2f±%4.2f',   'Li&Ma',       '=====', ],
+        [    '%7s',          '%7.4f',   'alpha',       '=====', ],
+        [   '%26s', '%10.2f / %7.2f / %6.2f', 'N_on fitting', '=======', ],
+        [   '%26s', '%10.2f / %7.2f / %6.2f',  'N_on pvalue', '=======', ],
     ]
 
     header_fmt = ' '.join([r[0] for r in fields]) # headers format
@@ -173,7 +175,13 @@ def print_data_summary(data):
                             N_off_m['mean'], N_off_m['stdev'],
                             N_exc_m['mean'], N_exc_m['stdev'],
                             li_ma_m['mean'], li_ma_m['stdev'],
-                            alpha_m['mean']))
+                            alpha_m['mean'],
+                            d['hist']['N_on']['fit_coeff'][0],
+                            d['hist']['N_on']['fit_coeff'][1],
+                            d['hist']['N_on']['fit_coeff'][2],
+                            d['hist']['N_on']['pvalue_err'][0],
+                            d['hist']['N_on']['pvalue_err'][1],
+                            d['hist']['N_on']['pvalue_err'][2] ))
 
 def fitting_data(curve_fn, initial_params=[], x=[], y=[], verbosity=False, name=None):
     res = curve_fit(curve_fn, x, y, p0=initial_params, full_output=verbosity)
@@ -182,10 +190,10 @@ def fitting_data(curve_fn, initial_params=[], x=[], y=[], verbosity=False, name=
         infodict, errmsg, ier = res[2:]
         print('infodict: {}\nerrmsg: {}\nier: {}'.format(infodict, errmsg, ier))
     perr = np.sqrt(np.diag(var_matrix))
-    print('Curve fit params: {}'.format(name))
-    print('{0:>10s}  {1:9s}  {2:9s}'.format('param no.', 'value', 'error'))
+    logging.debug('Curve fit params: {}'.format(name))
+    logging.debug('{0:>10s}  {1:9s}  {2:9s}'.format('param no.', 'value', 'error'))
     for i, c in enumerate(coeff):
-        print('{0:10d}  {1:+8.6e}  {2:+8.6e}'.format(i, c, perr[i]))
+        logging.debug('{0:10d}  {1:+8.6e}  {2:+8.6e}'.format(i, c, perr[i]))
     return coeff, perr
 
 # TODO Need sqrt
