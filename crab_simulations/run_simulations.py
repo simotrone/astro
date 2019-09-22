@@ -44,14 +44,21 @@ except FileExistsError as e:
 events_file = os.path.join(working_dir, "events.fits")
 log_file = os.path.join(working_dir, "ctobssim.log")
 
-sim = sobs.simulation_run(model_file=args.simulation_model, events_file=events_file, ra=SOURCE['ra']+args.ra_shift, dec=SOURCE['dec']+args.dec_shift, time=[0, args.tmax], log_file=log_file, force=args.force, save=args.save)
+pnt = { 'ra':  SOURCE['ra']  + args.ra_shift,
+        'dec': SOURCE['dec'] + args.dec_shift }
+
+sim = sobs.simulation_run(model_file=args.simulation_model, events_file=events_file, ra=pnt['ra'], dec=pnt['dec'], time=[0, args.tmax], log_file=log_file, force=args.force, save=args.save)
 if sim.obs().size() != 1:
     raise Exception("None or too many simulated observations")
 
 sim_obs_list = sim.obs()
 
 data_to_analyze = []
-data_to_analyze.append({ 'tmax': args.tmax, 'obs_list': sim_obs_list.clone(), 'dir': working_dir })
+data_to_analyze.append({ 'tmax': args.tmax,
+                         'obs_list': sim_obs_list.clone(),
+                         'dir': working_dir,
+                         'ra': pnt['ra'],
+                         'dec': pnt['dec'], })
 
 # selections
 for t in TIME_SELECTION_SLOTS:
@@ -115,6 +122,8 @@ for d in data_to_analyze:
     eflux = spectral_model.eflux(GENERGY['min'], GENERGY['max']) # erg/cm²/s
 
     results.append({ 'name': args.dir,
+                     'ra':   pnt['ra'],
+                     'dec':  pnt['dec'],
                      'seed': args.seed,
                      'tmax': d['tmax'],
                      'ts': ml_models[0].ts(),
