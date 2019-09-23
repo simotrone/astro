@@ -84,9 +84,14 @@ class CToolsWrapper:
             select.logFileOpen()
             select.run()
         elif os.path.isfile(output_obs_list):
-            container = gammalib.GObservations()
-            gcta_obs = gammalib.GCTAObservation(output_obs_list)
-            container.append(gcta_obs)
+            basename, ext = os.path.splitext(output_obs_list)
+            container = None
+            if ext == '.xml':
+                container = gammalib.GObservations(output_obs_list)
+            else: # .fits
+                container = gammalib.GObservations()
+                gcta_obs = gammalib.GCTAObservation(output_obs_list)
+                container.append(gcta_obs)
             select.obs(container)
         else:
             raise Exception("Cannot proceed with ctselect")
