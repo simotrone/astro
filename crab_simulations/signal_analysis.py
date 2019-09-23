@@ -12,7 +12,8 @@ from lib.exporter.csv import CSVExporter as csvex
 import logging
 
 # Example:
-# PYTHONPATH=../path/to/lib/ python data_analysis.py *tsv
+# PYTHONPATH=../path/to/lib/ python signal_analysis.py *tsv
+# PYTHONPATH=../astro_code/ python signal_analysis.py dec_*/*tsv ra_*/*tsv
 
 def data_summary_is_ok(data, pointings=None, time_slots=None, different_seeds=None):
     if len(data) != pointings * time_slots:
@@ -150,8 +151,8 @@ def print_data_summary(data):
         [   '%15s',    '%8.2f±%6.2f',     'N_s',         '===', ],
         [   '%11s',    '%6.2f±%4.2f',   'Li&Ma',       '=====', ],
         [    '%7s',          '%7.4f',   'alpha',       '=====', ],
-        [   '%26s', '%10.2f / %7.2f / %6.2f', 'N_on fitting', '=======', ],
-        [   '%26s', '%10.2f / %7.2f / %6.2f',  'N_on pvalue', '=======', ],
+        [   '%26s', '%10.2f %7.2f %6.2f', 'N_on fitting (A, μ, σ)', '=======', ],
+        [   '%23s', '%10.2f %5.2f %5.2f',  'N_on pvalue (A, μ, σ)', '=======', ],
     ]
 
     header_fmt = ' '.join([r[0] for r in fields]) # headers format
@@ -178,7 +179,7 @@ def print_data_summary(data):
                             alpha_m['mean'],
                             d['hist']['N_on']['fit_coeff'][0],
                             d['hist']['N_on']['fit_coeff'][1],
-                            d['hist']['N_on']['fit_coeff'][2],
+                            abs(d['hist']['N_on']['fit_coeff'][2]),
                             d['hist']['N_on']['pvalue_err'][0],
                             d['hist']['N_on']['pvalue_err'][1],
                             d['hist']['N_on']['pvalue_err'][2] ))
@@ -196,19 +197,18 @@ def fitting_data(curve_fn, initial_params=[], x=[], y=[], verbosity=False, name=
         logging.debug('{0:10d}  {1:+8.6e}  {2:+8.6e}'.format(i, c, perr[i]))
     return coeff, perr
 
-# TODO Need sqrt
+# no good with the quote
 def gauss(x, *params):
     A, mu, sigma = params
     exp_num = -1 * (x-mu)**2
     exp_den = 2. * sigma**2
-    return A * 1. / (2. * np.pi * sigma**2)* np.exp(exp_num / exp_den)
+    return A * np.exp(exp_num / exp_den)
 
-# no good with the quote
 def gauss2(x, *params):
     A, mu, sigma = params
     exp_num = -1 * (x-mu)**2
     exp_den = 2. * sigma**2
-    return A * np.exp(exp_num / exp_den)
+    return A * 1. / (2. * np.pi * sigma**2)* np.exp(exp_num / exp_den)
 
 def dynamic_bin_number(arr, max_val=None, min_val=None):
     n = max(arr)-min(arr)
@@ -237,7 +237,7 @@ def create_hist(ax, data, data_stats, xlabel=None, color="blue"):
 
     # normal stats
     # ax.plot(bins_centres, stats.norm.pdf(bins_centres, data_stats["mean"], data_stats["stdev"]), color="orange", linestyle="--", alpha=0.9, label='stats.norm\nμ:{0:.2e}\nσ:{1:.2e}'.format(data_stats['mean'], data_stats['stdev']))
-    ax.axvline(data_stats["mean"], color="blue", linestyle="--", alpha=0.9)
+    # ax.axvline(data_stats["mean"], color="blue", linestyle="--", alpha=0.9)
 
     # gauss fit
     ax.plot(bins_centres, fitted_hist, linestyle="-.", color="green")
@@ -245,28 +245,24 @@ def create_hist(ax, data, data_stats, xlabel=None, color="blue"):
     ax.legend( [ Patch(facecolor=color, edgecolor=color),
                  Line2D([0],[0], color="green", linestyle="-.") ],
                [ 'Data. bins:{0}\nμ:{1:.2f}\nσ:{2:.2f}'.format(data['n_bins'], data_stats['mean'], data_stats['stdev']),
-                 'Curve fit\nμ:{0:.2f}\nσ:{1:.2f}'.format(fit_params[1], fit_params[2]) ],
+                 'Curve fit\nμ:{0:.2f}\nσ:{1:.2f}'.format(fit_params[1], abs(fit_params[2])) ],
                loc='best' )
 
-    ax.set_xlabel('{0} (bins: {1})'.format(xlabel, data['n_bins']))
+    ax.set_xlabel('{0}'.format(xlabel))
     ax.set_ylabel('counts')
 
-def plot_data_summary(data):
+def plot_data_summary(data, save_img=False):
     rows_num=1
     cols_num=3
     img_format = 'png'
-    save_img = True
     for d in data:
         # figsize in inch (width, height)
         fig, ax = plt.subplots(nrows=rows_num, ncols=cols_num, figsize=(cols_num*4.5, rows_num*4.5))
-        fig.suptitle(d["name"]+" "+str(d["tmax"]), va="top", ha="center")
+        fig.suptitle('{} t_{} sec'.format(d["name"], str(d["tmax"])), va="top", ha="center")
 
-        # create_hist(ax[0][0], d['hist']['ts'], d['stats']['ts'], color="blue", xlabel="TS")
-        # create_hist(ax[1][0], d['hist']['li_ma'], d['stats']['li_ma'], color="cyan", xlabel="Li&Ma")
-        # create_hist(ax[2][0], d['hist']['flux'], d['stats']['flux'], color="green", xlabel="Flux [ph/cm²/s]" )
         create_hist(ax[0], d['hist']['N_on'],  d['stats']['N_on'],  color="magenta", xlabel="N on")
         create_hist(ax[1], d['hist']['N_off'], d['stats']['N_off'], color="red",     xlabel="N off")
-        create_hist(ax[2], d['hist']['N_s'],   d['stats']['N_s'],   color="yellow",  xlabel="N signal")
+        create_hist(ax[2], d['hist']['N_exc'], d['stats']['N_exc'], color="yellow",  xlabel="N excess")
 
         # Important: first tight_layout(), after adjust for the title
         fig.tight_layout()
@@ -275,7 +271,7 @@ def plot_data_summary(data):
             img_filename = "signal_{0}_{1:04d}.{2}".format(d["name"], d["tmax"], img_format)
             plt.savefig(img_filename, format=img_format)
             plt.close()
-            print("saving {}".format(img_filename), file=sys.stderr)
+            logging.debug("saving {}".format(img_filename))
         else:
             plt.show()
             plt.close()
@@ -311,5 +307,5 @@ if __name__ == '__main__':
     # inplace augment
     data_augmentation(ds, bins_number=50)
     print_data_summary(ds.values())
-    # plot_data_summary(list(ds.values()))
+    plot_data_summary(list(ds.values()), save_img=True)
 
