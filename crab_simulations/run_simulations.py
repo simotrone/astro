@@ -57,13 +57,13 @@ data_to_analyze = []
 data_to_analyze.append({ 'tmax': args.tmax,
                          'obs_list': sim_obs_list.clone(),
                          'dir': working_dir,
-                         'ra': pnt['ra'],
+                         'ra':  pnt['ra'],
                          'dec': pnt['dec'], })
 
 # selections
 for t in TIME_SELECTION_SLOTS:
     if t > args.tmax:
-        logging.warn('Skipping time {} because greater of tmax.'.format(t))
+        logging.warning('Skipping time {} because greater of tmax.'.format(t))
         continue
 
     sel_working_dir = os.path.join(working_dir, "sel_"+str(t))
@@ -73,7 +73,11 @@ for t in TIME_SELECTION_SLOTS:
     sel_log_file = os.path.join(sel_working_dir, "ctselect.log")
     select = sobs.selection_run(input_obs_list=sim_obs_list, output_obs_list=sel_obs_file, tmin=0, tmax=t, prefix=os.path.join(sel_working_dir, "selected_"), log_file=sel_log_file, force=args.force, save=args.save)
 
-    data_to_analyze.append({ 'tmax': t, 'obs_list': select.obs().clone(), 'dir': sel_working_dir })
+    data_to_analyze.append({ 'tmax': t,
+                             'obs_list': select.obs().clone(),
+                             'dir': sel_working_dir,
+                             'ra':  pnt['ra'],
+                             'dec': pnt['dec'], })
     logging.info("Selection {} done.".format(sel_working_dir))
 
 # on/off analysis
@@ -144,6 +148,6 @@ for d in data_to_analyze:
 try:
 	csvex.save(os.path.join(args.dir, 'results_{}.tsv'.format(str(args.seed))), results, headers=list(results[0].keys()), delimiter="\t")
 except:
-	print(results, file=sys.stderr)
+	print(results)
 
 exit(0)
