@@ -85,14 +85,13 @@ class CToolsWrapper:
             select.run()
         elif os.path.isfile(output_obs_list):
             basename, ext = os.path.splitext(output_obs_list)
-            container = None
             if ext == '.xml':
-                container = gammalib.GObservations(output_obs_list)
+                select = ctools.ctselect(gammalib.GObservations(output_obs_list)
             else: # .fits
                 container = gammalib.GObservations()
                 gcta_obs = gammalib.GCTAObservation(output_obs_list)
                 container.append(gcta_obs)
-            select.obs(container)
+                select.obs(container)
         else:
             raise Exception("Cannot proceed with ctselect")
         saved = False
