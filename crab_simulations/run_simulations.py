@@ -62,7 +62,7 @@ data_to_analyze.append({ 'tmax': args.tmax,
 
 # selections
 for t in TIME_SELECTION_SLOTS:
-    if t > args.tmax:
+    if t >= args.tmax:
         logging.warning('Skipping time {} because greater of tmax.'.format(t))
         continue
 
