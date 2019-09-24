@@ -39,16 +39,20 @@ class TimeSliceExporter:
     # energies in GeV
     # spectra in ph/cm2/s/GeV
     # Important: we need to convert GeV in MeV (see ref.)
-    def export(self, force=False):
+    def export(self, force=False, ebl=False):
         times    = self.hdul['TIMES'].data
         energies = self.hdul['ENERGIES'].data
-        spectra  = self.hdul['SPECTRA'].data
+        spectra  = None
+        if ebl:
+            spectra = self.hdul['EBL GILMORE'].data
+        else:
+            spectra = self.hdul['SPECTRA'].data
         mev_energies = [ene[0]*1000 for ene in energies]
         done = []
         for i, tsec in enumerate(times):
             # writing energies/spectra tsv
             mev_spectra = [f/1000 for f in spectra[i]]
-            time_slice_filename = os.path.join(self.savings_dir, "spec_{0:02d}.tsv".format(i))
+            time_slice_filename = os.path.join(self.savings_dir, "spec_tbin{0:02d}.tsv".format(i))
             if force or not os.path.isfile(time_slice_filename):
                 self.write_energies_spectra_tsv(time_slice_filename, mev_energies, mev_spectra)
             elif self.verbosity > 1:
