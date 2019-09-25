@@ -92,6 +92,7 @@ def data_augmentation(data, bins_number=50):
         { 'name': 'N_on',  'dyn_bins': True },
         { 'name': 'N_off', 'dyn_bins': True },
         { 'name': 'N_exc', 'dyn_bins': True },
+        { 'name': 'li_ma', 'dyn_bins': False },
     ]
     for data_name, d in data.items():
         logging.warning(data_name)
@@ -137,7 +138,7 @@ def array_stats(arr):
     }
     return stat
 
-def print_data_summary(data):
+def print_txt_data_summary(data):
     fields = [
       #   h_format,         v_format,     title,         sub_t
         [   '%15s',           '%15s',  'fs ref',  '==========', ],
@@ -159,13 +160,13 @@ def print_data_summary(data):
     values_fmt = ' '.join([r[1] for r in fields]) # values format
     print(header_fmt % tuple([r[2] for r in fields])) # titles
     print(header_fmt % tuple([r[3] for r in fields])) # sub_titles separator
-    for d in sorted(data, key=lambda i: (-1*i['tmax'], i['ra'], i['dec'])):
+    for d in sorted(data.values(), key=lambda i: (-1*i['tmax'], i['ra'], i['dec'])):
         n_seeds = len(d['data']['seed'])
         ts_m    = array_stats(d['data']['ts'])
         N_on_m  = d['stats']['N_on']
         N_off_m = d['stats']['N_off']
         N_exc_m = d['stats']['N_exc']
-        li_ma_m = array_stats(d['data']['li_ma'])
+        li_ma_m = d['stats']['li_ma']
         alpha_m = array_stats(d['data']['alpha']) # useless
         if alpha_m['stdev'] > 0.000001:
             logging.error('Just a check. alpha stdev must be 0. alpha={}'.format(alpha_m))
@@ -183,6 +184,86 @@ def print_data_summary(data):
                             d['hist']['N_on']['pvalue_err'][0],
                             d['hist']['N_on']['pvalue_err'][1],
                             d['hist']['N_on']['pvalue_err'][2] ))
+
+def print_html_data_summary(data):
+    from  jinja2 import Template
+    t = Template("""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+    .alnright { text-align: right; }
+    .spaced { float: right; width: 3em; }
+    table { width: auto; }
+    th, td { padding: 10px; }
+    th { background-color: #4CAF50; color: white; }
+    th { border-bottom: 1px solid #ddd; }
+    tr:nth-child(even) { background-color: #f6f6f6; }
+    tr:hover {background-color: #f2f2f2;}
+    p { margin: 0; padding 3px 5px; }
+    ul.gallery li {
+        list-style-type: none;
+        float: left;
+        border: 1px solid #a2a2a2;
+        padding: 1em;
+        margin: 1em;
+    }
+    </style>
+    <title>Crab signal</title>
+</head>
+<body>
+    <table id="main_table">
+        {% set doing = {} %}
+        {% for d in rows %}
+            {% if d['name'] not in doing %}
+                <tr>
+                    <th>name</th>
+                    <th>tmax <br/> [sec]</th>
+                    <th>Total <br/> seeds</th>
+                    <th>On source <br/> counts</th>
+                    <th>Off source <br/> counts</th>
+                    <th>Excess <br/> counts</th>
+                    <th>Li &amp; Ma <br/> significance</th>
+                </tr>
+            {% endif %}
+            {% if doing.update({ d['name']: True }) %} {% endif %}
+        <tr>
+            <td id="{{ d['name'] }}">{{ d['name'] }} (<a href="#{{ d['img'] }}">plot</a>)</td>
+            <td class="alnright">{{ d['tmax'] }}</td>
+            <td class="alnright">{{ d['data']['seed']|length }}</td>
+            <td class="alnright">
+                <p>{{ '{0:.3f} ± {1:.3f}'.format(d['stats']['N_on']['mean'], d['stats']['N_on']['stdev']) }}                   <span class="spaced">data</span></p>
+                <p>{{ '{0:.3f} ± {1:.3f}'.format(d['hist']['N_on']['fit_coeff'][1],  d['hist']['N_on']['fit_coeff'][2]|abs) }} <span class="spaced">fit </span></p>
+            </td>
+            <td class="alnright">
+                <p>{{ '{0:.3f} ± {1:.3f}'.format(d['stats']['N_off']['mean'], d['stats']['N_off']['stdev']) }}                  <span class="spaced">data</span></p>
+                <p>{{ '{0:.3f} ± {1:.3f}'.format(d['hist']['N_off']['fit_coeff'][1], d['hist']['N_off']['fit_coeff'][2]|abs) }} <span class="spaced">fit </span></p>
+            </td>
+            <td class="alnright">
+                <p>{{ '{0:.3f} ± {1:.3f}'.format(d['stats']['N_exc']['mean'], d['stats']['N_exc']['stdev']) }}                  <span class="spaced">data</span></p>
+                <p>{{ '{0:.3f} ± {1:.3f}'.format(d['hist']['N_exc']['fit_coeff'][1], d['hist']['N_exc']['fit_coeff'][2]|abs) }} <span class="spaced">fit </span></p>
+            </td>
+            <td class="alnright">
+                <p>{{ '{0:.3f} ± {1:.3f}'.format(d['stats']['li_ma']['mean'], d['stats']['li_ma']['stdev']) }}                  <span class="spaced">data</span> </p>
+                <p>{{ '{0:.3f} ± {1:.3f}'.format(d['hist']['li_ma']['fit_coeff'][1], d['hist']['li_ma']['fit_coeff'][2]|abs) }} <span class="spaced">fit </span> </p>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h3>Plots</h3>
+
+    <ul class="gallery">
+        {% for d in rows %}
+        <li id="{{ d['img'] }}"><img src="{{ d['img'] }}" /> <a href="#main_table">back</a></li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
+""")
+    html = t.render(rows=data.values())
+    print(html)
+    
 
 def fitting_data(curve_fn, initial_params=[], x=[], y=[], verbosity=False, name=None):
     res = curve_fit(curve_fn, x, y, p0=initial_params, full_output=verbosity)
@@ -252,26 +333,33 @@ def create_hist(ax, data, data_stats, xlabel=None, color="blue"):
     ax.set_ylabel('counts')
 
 def plot_data_summary(data, save_img=False):
-    rows_num=1
-    cols_num=3
+    rows_num=2
+    cols_num=2
     img_format = 'png'
-    for d in data:
+    for d in list(data.values()):
         # figsize in inch (width, height)
         fig, ax = plt.subplots(nrows=rows_num, ncols=cols_num, figsize=(cols_num*4.5, rows_num*4.5))
         fig.suptitle('{} t_{} sec'.format(d["name"], str(d["tmax"])), va="top", ha="center")
 
-        create_hist(ax[0], d['hist']['N_on'],  d['stats']['N_on'],  color="magenta", xlabel="N on")
-        create_hist(ax[1], d['hist']['N_off'], d['stats']['N_off'], color="red",     xlabel="N off")
-        create_hist(ax[2], d['hist']['N_exc'], d['stats']['N_exc'], color="yellow",  xlabel="N excess")
+        create_hist(ax[0][0], d['hist']['N_on'],  d['stats']['N_on'],  color="magenta", xlabel="N on")
+        create_hist(ax[0][1], d['hist']['N_off'], d['stats']['N_off'], color="red",     xlabel="N off")
+        create_hist(ax[1][0], d['hist']['N_exc'], d['stats']['N_exc'], color="yellow",  xlabel="N excess")
+        create_hist(ax[1][1], d['hist']['li_ma'], d['stats']['li_ma'], color="orange",  xlabel="Li & Ma significance")
 
         # Important: first tight_layout(), after adjust for the title
         fig.tight_layout()
         fig.subplots_adjust(top=0.90)
         if save_img:
-            img_filename = "signal_{0}_{1:04d}.{2}".format(d["name"], d["tmax"], img_format)
+            img_dir = "imgs_signal"
+            img_filename = "{0}/signal_{1}_{2:04d}.{3}".format(img_dir, d["name"], d["tmax"], img_format)
+            try:
+                os.makedirs(img_dir)
+            except FileExistsError as e:
+                logging.debug("The imgs dir {} already exists".format(img_dir))
             plt.savefig(img_filename, format=img_format)
             plt.close()
             logging.debug("saving {}".format(img_filename))
+            d['img'] = img_filename
         else:
             plt.show()
             plt.close()
@@ -305,7 +393,8 @@ if __name__ == '__main__':
         exit(1)
 
     # inplace augment
-    data_augmentation(ds, bins_number=50)
-    print_data_summary(ds.values())
-    plot_data_summary(list(ds.values()), save_img=True)
+    data_augmentation(ds, bins_number=10)
+    plot_data_summary(ds, save_img=True)
+    # print_txt_data_summary(ds)
+    print_html_data_summary(ds)
 
