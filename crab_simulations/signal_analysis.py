@@ -191,6 +191,7 @@ def print_html_data_summary(data):
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8" />
     <style>
     .alnright { text-align: right; }
     .spaced { float: right; width: 3em; }
@@ -212,6 +213,7 @@ def print_html_data_summary(data):
     <title>Crab signal</title>
 </head>
 <body>
+    <h2>Crab excess counts with on/off analysis</h2>
     <table id="main_table">
         {% set doing = {} %}
         {% for d in rows %}
@@ -220,9 +222,9 @@ def print_html_data_summary(data):
                     <th>name</th>
                     <th>tmax <br/> [sec]</th>
                     <th>Total <br/> seeds</th>
-                    <th>On source <br/> counts</th>
-                    <th>Off source <br/> counts</th>
-                    <th>Excess <br/> counts</th>
+                    <th>On source <br/> counts [ph]</th>
+                    <th>Off source <br/> counts [ph]</th>
+                    <th>Excess <br/> counts [ph]</th>
                     <th>Li &amp; Ma <br/> significance</th>
                 </tr>
             {% endif %}
