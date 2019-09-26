@@ -86,7 +86,7 @@ class CToolsWrapper:
         elif os.path.isfile(output_obs_list):
             basename, ext = os.path.splitext(output_obs_list)
             if ext == '.xml':
-                select = ctools.ctselect(gammalib.GObservations(output_obs_list)
+                select = ctools.ctselect(gammalib.GObservations(output_obs_list))
             else: # .fits
                 container = gammalib.GObservations()
                 gcta_obs = gammalib.GCTAObservation(output_obs_list)
