@@ -61,7 +61,7 @@ class TimeSliceExporter:
             xml_slice_filename = None
             if self.model_filename:
                 base, ext = os.path.splitext(os.path.basename(self.model_filename))
-                xml_slice_filename = os.path.join(self.savings_dir, base+'_{0:02d}'.format(i)+ext)
+                xml_slice_filename = os.path.join(self.savings_dir, base+'_tbin{0:02d}'.format(i)+ext)
                 if force or not os.path.isfile(xml_slice_filename):
                     self.write_linked_model(self.model_tree, os.path.basename(time_slice_filename), xml_slice_filename)
                 elif self.verbosity > 1:
