@@ -31,7 +31,8 @@ sobs = CToolsWrapper({ 'name': SOURCE['name'],
                        'dec': SOURCE['dec'],
                        'energy_min': ENERGY['min'],
                        'energy_max': ENERGY['max'],
-                       'seed': args.seed }, 
+                       'seed': args.seed,
+                       'nthreads': 2, }, 
                        verbosity=args.verbose )
 
 working_dir = os.path.join(args.dir, str(args.seed))
