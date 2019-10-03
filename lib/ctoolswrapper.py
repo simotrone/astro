@@ -96,22 +96,24 @@ class CToolsWrapper:
             raise Exception("Cannot proceed with ctselect")
         saved = False
         if (save and force) or (save and not os.path.isfile(output_obs_list)):
-            select.save()
+            select.save() # why it doesn't save anytime?
             saved = True
         if saved and self.verbosity > 1:
             print("Files {} created.".format(output_obs_list), file=sys.stderr)
         return select
 
-    def csphagen_run(self, input_obs_list, input_model, source_rad=0.2, output_obs_list='onoff_obs.xml', output_model='onoff_result.xml', log_file='csphagen.log', prefix='onoff', ebinalg="LIN", enumbins=1, stacked=False, force=False, save=False):
+    def csphagen_run(self, input_obs_list, input_model=None, source_rad=0.2, output_obs_list='onoff_obs.xml', output_model='onoff_result.xml', log_file='csphagen.log', prefix='onoff', ebinalg="LIN", enumbins=1, stacked=False, force=False, save=False):
         phagen = cscripts.csphagen()
         if isinstance(input_obs_list, gammalib.GObservations):
             phagen.obs(input_obs_list)
+            if input_model is not None:
+                phagen.obs().models(input_model)
         elif os.path.isfile(input_obs_list):
             # observations list from file
             phagen["inobs"] = input_obs_list
+            phagen["inmodel"] = input_model
         else:
             raise Exception('Cannot understand input obs list for csphagen')
-        phagen["inmodel"] = input_model
         phagen["srcname"] = self.name
         phagen["caldb"]   = self.caldb
         phagen["irf"]     = self.irf
@@ -151,6 +153,8 @@ class CToolsWrapper:
         like = ctools.ctlike()
         if isinstance(input_obs_list, gammalib.GObservations):
             like.obs(input_obs_list)
+            if input_models is not None:
+                like.obs().models(input_models)
         elif os.path.isfile(input_obs_list) and os.path.isfile(input_models):
             # observations list from file
             like["inobs"] = input_obs_list
