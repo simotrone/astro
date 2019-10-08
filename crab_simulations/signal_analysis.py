@@ -284,8 +284,19 @@ def fitting_data(curve_fn, initial_params=[], x=[], y=[], verbosity=False, name=
     coeff, var_matrix = res[:2]
     if (len(res) > 2):
         infodict, errmsg, ier = res[2:]
-        print('infodict: {}\nerrmsg: {}\nier: {}'.format(infodict, errmsg, ier))
-    perr = np.sqrt(np.diag(var_matrix))
+        logging.error('infodict: {}\nerrmsg: {}\nier: {}'.format(infodict, errmsg, ier))
+
+    if np.all(np.diag(var_matrix) > 0):
+        perr = np.sqrt(np.diag(var_matrix))
+    else:
+        # https://stackoverflow.com/questions/28702631/scipy-curve-fit-returns-negative-variance
+        # print("covariance matrix:\n", var_matrix, file=sys.stderr)
+        # print("covariance matrix diag:\n", np.diag(var_matrix), file=sys.stderr)
+        # print(np.linalg.cond(var_matrix), file=sys.stderr)
+        # exit(1)
+        # should be -inf
+        perr = [0 for i in np.diag(var_matrix)]
+
     logging.debug('Curve fit params: {}'.format(name))
     logging.debug('{0:>10s}  {1:9s}  {2:9s}'.format('param no.', 'value', 'error'))
     for i, c in enumerate(coeff):
