@@ -127,6 +127,9 @@ def data_augmentation(data, bins_number=50):
                 'fit_coeff':  fit_coeff,
                 'pvalue_err': pvalue_err,
             }
+
+        d['stats']['li_ma']['sigma_significance'] = d['stats']['li_ma']['stdev'] / d['stats']['li_ma']['mean']
+        d['hist']['li_ma']['sigma_significance']  = d['hist']['li_ma']['fit_coeff'][2] / d['hist']['li_ma']['fit_coeff'][1]
     return data
 
 def array_stats(arr):
@@ -151,6 +154,7 @@ def print_txt_data_summary(data):
         [   '%15s',    '%8.2f±%6.2f',   'N_off',       '=====', ],
         [   '%15s',    '%8.2f±%6.2f',     'N_s',         '===', ],
         [   '%11s',    '%6.2f±%4.2f',   'Li&Ma',       '=====', ],
+        [    '%7s',          '%7.4f', 'σ/Li&Ma',     '=======', ],
         [    '%7s',          '%7.4f',   'alpha',       '=====', ],
         [   '%26s', '%10.2f %7.2f %6.2f', 'N_on fitting (A, μ, σ)', '=======', ],
         [   '%23s', '%10.2f %5.2f %5.2f',  'N_on pvalue (A, μ, σ)', '=======', ],
@@ -168,6 +172,8 @@ def print_txt_data_summary(data):
         N_exc_m = d['stats']['N_exc']
         li_ma_m = d['stats']['li_ma']
         alpha_m = array_stats(d['data']['alpha']) # useless
+        sigma_sign = d['stats']['li_ma']['sigma_significance']
+        # fit_sig_sign   = abs(d['hist']['li_ma']['sigma_significance'])
         if alpha_m['stdev'] > 0.000001:
             logging.error('Just a check. alpha stdev must be 0. alpha={}'.format(alpha_m))
             exit(1)
@@ -177,6 +183,7 @@ def print_txt_data_summary(data):
                             N_off_m['mean'], N_off_m['stdev'],
                             N_exc_m['mean'], N_exc_m['stdev'],
                             li_ma_m['mean'], li_ma_m['stdev'],
+                            sigma_sign,
                             alpha_m['mean'],
                             d['hist']['N_on']['fit_coeff'][0],
                             d['hist']['N_on']['fit_coeff'][1],
@@ -226,6 +233,7 @@ def print_html_data_summary(data):
                     <th>Off source <br/> counts [ph]</th>
                     <th>Excess <br/> counts [ph]</th>
                     <th>Li &amp; Ma <br/> significance</th>
+                    <th>Li &amp; Ma <br/>σ / significance</th>
                 </tr>
             {% endif %}
             {% if doing.update({ d['name']: True }) %} {% endif %}
@@ -248,6 +256,10 @@ def print_html_data_summary(data):
             <td class="alnright">
                 <p>{{ '{0:.3f} ± {1:.3f}'.format(d['stats']['li_ma']['mean'], d['stats']['li_ma']['stdev']) }}                  <span class="spaced">data</span> </p>
                 <p>{{ '{0:.3f} ± {1:.3f}'.format(d['hist']['li_ma']['fit_coeff'][1], d['hist']['li_ma']['fit_coeff'][2]|abs) }} <span class="spaced">fit </span> </p>
+            </td>
+            <td class="alnright">
+                <p>{{ '{0:.4f}'.format(d['stats']['li_ma']['sigma_significance']) }}    <span class="spaced">data</span> </p>
+                <p>{{ '{0:.4f}'.format(d['hist']['li_ma']['sigma_significance']|abs) }} <span class="spaced">fit </span> </p>
             </td>
         </tr>
         {% endfor %}
@@ -367,6 +379,82 @@ def plot_data_summary(data, save_img=False):
             plt.close()
     return None
 
+def plot_significance_sigma(data, save_img=False):
+    rows_num=2
+    cols_num=2
+    img_format = 'png'
+
+    data_plot = {}
+    for d in data.values():
+        if d['name'] not in data_plot:
+            data_plot[d['name']] = {
+                't': [],
+                'data_significance_sigma': [], # sigma
+                'fit_significance_sigma':  [], # sigma
+                'data_sigma_significance': [], # sigma / significance
+                'fit_sigma_significance':  [], # sigma / significance
+            }
+        stats_stdev = d['stats']['li_ma']['stdev']
+        fit_stdev   = abs(d['hist']['li_ma']['fit_coeff'][2])
+
+        stats_sig_sign = d['stats']['li_ma']['sigma_significance']
+        fit_sig_sign   = abs(d['hist']['li_ma']['sigma_significance'])
+
+        data_plot[d['name']]['t'].append(d['tmax'])
+        data_plot[d['name']]['data_significance_sigma'].append(stats_stdev)
+        data_plot[d['name']]['fit_significance_sigma'].append(fit_stdev)
+        data_plot[d['name']]['data_sigma_significance'].append(stats_sig_sign)
+        data_plot[d['name']]['fit_sigma_significance'].append(fit_sig_sign)
+
+    rows_num = int(len(data_plot)/2) +1
+    # figsize in inch (width, height)
+    fig, axes = plt.subplots(nrows=rows_num, ncols=cols_num, figsize=(cols_num*4.5, rows_num*4.5))#, sharey=True)#, sharex=True)
+    # fig.subplots_adjust(top=0.90)
+
+    names = list(data_plot.keys())
+    x_tick_labels = data_plot[names[0]]['t']
+    for ax_row in axes:
+        for ax in ax_row:
+            if len(names) > 0:
+                name = names.pop(0)
+                d = data_plot[name]
+                # ax.scatter(x=d['t'], y=d['data_significance_sigma'], s=15, color='blue', marker='x', label="data")
+                # ax.scatter(x=d['t'], y=d['fit_significance_sigma'],  s=15, color='red',  marker='x', label="fit")
+                ax.scatter(x=d['t'], y=d['data_sigma_significance'], s=15, color='blue', marker='x', label="data")
+                ax.scatter(x=d['t'], y=d['fit_sigma_significance'],  s=15, color='red',  marker='x', label="fit")
+                # ax.set_xticks(x_tick_labels[::-1])
+                # ax.set_xticklabels(x_tick_labels[::-1])
+                ax.set_title(name)
+                ax.set_xscale('log')
+                ax.set_ylabel('sigma / significance')
+                if len(names) == 0 or len(names) == 1:
+                    # ax.set_xticks([0,10,100, 1000, 1800]) # x_tick_labels[::-1]
+                    # ax.set_xticklabels([0, 10, 100, 1000, 1800]) # x_tick_labels[::-1]
+                    ax.set_xlabel('time (sec)')
+            else:
+                ax.axis('off')
+            ax.grid(True)
+            ax.legend(loc='best')
+
+    fig.tight_layout(pad=5.0, h_pad=5.0)
+    plt.show()
+    plt.close()
+    # if save_img:
+    #     img_dir = "imgs_signal"
+    #     img_filename = "{0}/signal_{1}_{2:04d}.{3}".format(img_dir, d["name"], d["tmax"], img_format)
+    #     try:
+    #         os.makedirs(img_dir)
+    #     except FileExistsError as e:
+    #         logging.debug("The imgs dir {} already exists".format(img_dir))
+    #     plt.savefig(img_filename, format=img_format)
+    #     plt.close()
+    #     logging.debug("saving {}".format(img_filename))
+    #     d['img'] = img_filename
+    # else:
+    #     plt.show()
+    #     plt.close()
+    return None
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Analyze data from tsv")
     parser.add_argument('files', help='the tsv file', nargs='+')
@@ -384,7 +472,7 @@ if __name__ == '__main__':
     logging.warning("     data: {}".format(len(original_data)))
 
     ds = data_summary(original_data)
-    if not data_summary_is_ok(ds, pointings=5, time_slots=8, different_seeds=5000):
+    if not data_summary_is_ok(ds, pointings=5, time_slots=9, different_seeds=5000):
         exit(1)
     
     # check the min/max TS
@@ -397,6 +485,7 @@ if __name__ == '__main__':
     # inplace augment
     data_augmentation(ds, bins_number=10)
     plot_data_summary(ds, save_img=True)
+    # plot_significance_sigma(ds, save_img=False)
     # print_txt_data_summary(ds)
     print_html_data_summary(ds)
 
