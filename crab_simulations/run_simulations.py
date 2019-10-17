@@ -10,7 +10,7 @@ SOURCE = { 'name': 'Crab', 'ra': 83.6331, 'dec': 22.0145, 'model': 'crab.xml' }
 ENERGY = { 'min': 0.03, 'max': 150.0 }
 GENERGY = { 'min': gammalib.GEnergy(ENERGY['min'], 'TeV'),
             'max': gammalib.GEnergy(ENERGY['max'], 'TeV'), }
-TIME_SELECTION_SLOTS = [600, 100, 60, 30, 20, 10, 5]
+TIME_SELECTION_SLOTS = [600, 100, 60, 30, 20, 10, 5, 4, 3, 2, 1]
 
 parser = argparse.ArgumentParser(description="Create simulations")
 parser.add_argument("simulation_model", help="the xml file to simulate initial events")
