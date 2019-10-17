@@ -59,7 +59,7 @@ class CToolsWrapper:
             print("Events file '{}' saved. time [{}-{}]".format(sim["outevents"].value(), time[0], time[1]), file=sys.stderr)
         return sim
 
-    def selection_run(self, input_obs_list, output_obs_list, tmin=0, tmax=None, prefix='selected_', log_file='ctselect.log', force=False, save=False):
+    def selection_run(self, input_obs_list, output_obs_list, tmin=0, tmax=None, energy=[None, None], prefix='selected_', log_file='ctselect.log', force=False, save=False):
         if tmin < 0 or tmax < 1 or tmin >= tmax:
             raise Exception("ctselect needs better tmin/tmax")
         select = ctools.ctselect()
@@ -75,8 +75,8 @@ class CToolsWrapper:
         select["dec"] = "INDEF"
         select["tmin"] = tmin
         select["tmax"] = tmax
-        select["emin"] = "INDEF"
-        select["emax"] = "INDEF"
+        select["emin"] = energy[0] if energy[0] else "INDEF"
+        select["emax"] = energy[1] if energy[1] else "INDEF"
         select["prefix"] = prefix
         select["outobs"] = output_obs_list
         select["logfile"] = log_file
@@ -102,7 +102,7 @@ class CToolsWrapper:
             print("Files {} created.".format(output_obs_list), file=sys.stderr)
         return select
 
-    def csphagen_run(self, input_obs_list, input_model=None, source_rad=0.2, output_obs_list='onoff_obs.xml', output_model='onoff_result.xml', log_file='csphagen.log', prefix='onoff', ebinalg="LIN", enumbins=1, stacked=False, force=False, save=False):
+    def csphagen_run(self, input_obs_list, input_model=None, source_rad=0.2, energy=[None, None], output_obs_list='onoff_obs.xml', output_model='onoff_result.xml', log_file='csphagen.log', prefix='onoff', ebinalg="LIN", enumbins=1, stacked=False, force=False, save=False):
         phagen = cscripts.csphagen()
         if isinstance(input_obs_list, gammalib.GObservations):
             phagen.obs(input_obs_list)
@@ -118,8 +118,8 @@ class CToolsWrapper:
         phagen["caldb"]   = self.caldb
         phagen["irf"]     = self.irf
         phagen["ebinalg"]  = ebinalg
-        phagen["emin"]     = self.energy_min
-        phagen["emax"]     = self.energy_max
+        phagen["emin"]     = energy[0] if energy[0] else self.energy_min
+        phagen["emax"]     = energy[1] if energy[1] else self.energy_max
         phagen["enumbins"] = enumbins
         phagen["coordsys"] = "CEL"
         phagen["ra"]    = self.ra
