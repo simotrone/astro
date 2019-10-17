@@ -21,13 +21,15 @@ ENERGY_SELECTION = [ { 'min': ENERGY['min'], 'max': ENERGY['max'] },
                      { 'min': 0.200,         'max': 0.316 },
                      { 'min': 0.316,         'max': 0.500 },
                      { 'min': 0.500,         'max': 0.800 },
-                     { 'min': 0.032,         'max': ENERGY['max'] },
-                     { 'min': 0.050,         'max': ENERGY['max'] },
-                     { 'min': 0.080,         'max': ENERGY['max'] },
-                     { 'min': 0.126,         'max': ENERGY['max'] },
-                     { 'min': 0.200,         'max': ENERGY['max'] },
-                     { 'min': 0.316,         'max': ENERGY['max'] },
-                     { 'min': 0.500,         'max': ENERGY['max'] } ]
+
+                     { 'min': 0.029,         'max': ENERGY['max'] },
+                     { 'min': 0.041,         'max': ENERGY['max'] },
+                     { 'min': 0.065,         'max': ENERGY['max'] },
+                     { 'min': 0.103,         'max': ENERGY['max'] },
+                     { 'min': 0.163,         'max': ENERGY['max'] },
+                     { 'min': 0.258,         'max': ENERGY['max'] },
+                     { 'min': 0.408,         'max': ENERGY['max'] },
+                     { 'min': 0.650,         'max': ENERGY['max'] } ]
 
 
 parser = argparse.ArgumentParser(description="Create simulations")
