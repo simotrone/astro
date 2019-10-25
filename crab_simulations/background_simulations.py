@@ -10,7 +10,7 @@ SOURCE = { 'name': 'Crab', 'ra': 83.6331, 'dec': 22.0145, 'model': 'crab.xml' }
 ENERGY = { 'min': 0.03, 'max': 150.0 }
 GENERGY = { 'min': gammalib.GEnergy(ENERGY['min'], 'TeV'),
             'max': gammalib.GEnergy(ENERGY['max'], 'TeV'), }
-TIME_SELECTION_SLOTS = [600, 100, 60, 30, 20, 10, 5]
+TIME_SELECTION_SLOTS = [600, 100, 60, 30, 20, 10, 5, 4, 3, 2, 1]
 
 parser = argparse.ArgumentParser(description="Create simulations")
 parser.add_argument("simulation_model", help="the xml file to simulate initial events")
@@ -85,37 +85,33 @@ for t in TIME_SELECTION_SLOTS:
 results = []
 for d in data_to_analyze:
     ### csphagen / onoff analysis
-    # onoff_log_file = os.path.join(d["dir"], "csphagen.log")
-    # onoff_obs_file = os.path.join(d["dir"], "onoff_obs_list.xml")
-    # onoff_model_file = os.path.join(d["dir"], "onoff_result.xml")
-    # onoff_prefix = os.path.join(d["dir"], "onoff")
-    # if not args.model:
-    #     raise Exception("Without model cannot run the csphagen process")
-    # phagen = sobs.csphagen_run(d["obs_list"], input_model=args.model, source_rad=0.2, output_obs_list=onoff_obs_file, output_model=onoff_model_file, log_file=onoff_log_file, prefix=onoff_prefix, force=args.force, save=args.save)
-    # phagen_obs_list = phagen.obs()
-    # if phagen_obs_list.size() == 0:
-    #     logging.error("csphagen doesn't provide an on/off observation list for {}/{}".format(d["tmax"], d["dir"]))
-    #     break
-    # logging.info("on/off {} done.".format(d["dir"]))
-    # logging.debug("OnOff list:\n", phagen_obs_list)
-    # logging.debug(phagen_obs_list[0]) # GCTAOnOffObservation
-    # logging.debug(phagen_obs_list.models())
+    onoff_log_file = os.path.join(d["dir"], "csphagen.log")
+    onoff_obs_file = os.path.join(d["dir"], "onoff_obs_list.xml")
+    onoff_model_file = os.path.join(d["dir"], "onoff_result.xml")
+    onoff_prefix = os.path.join(d["dir"], "onoff")
+    if not args.model:
+        raise Exception("Without model cannot run the csphagen process")
+    phagen = sobs.csphagen_run(d["obs_list"], input_model=args.model, source_rad=0.2, output_obs_list=onoff_obs_file, output_model=onoff_model_file, log_file=onoff_log_file, prefix=onoff_prefix, force=args.force, save=args.save)
+    phagen_obs_list = phagen.obs()
+    if phagen_obs_list.size() == 0:
+        logging.error("csphagen doesn't provide an on/off observation list for {}/{}".format(d["tmax"], d["dir"]))
+        break
+    logging.info("on/off {} done.".format(d["dir"]))
+    logging.debug("OnOff list:\n", phagen_obs_list)
+    logging.debug(phagen_obs_list[0]) # GCTAOnOffObservation
+    logging.debug(phagen_obs_list.models())
 
-    # pha_on  = phagen_obs_list[0].on_spec()
-    # pha_off = phagen_obs_list[0].off_spec()
-    # on_count  = pha_on.counts()
-    # off_count = pha_off.counts()
-    # alpha = pha_on.backscal(pha_on.size()-1) # spectrum bins-1
-    # excess_count = on_count - alpha * off_count
-    on_count  = 0
-    off_count = 0
-    alpha = 1
-    excess_count = 0
+    pha_on  = phagen_obs_list[0].on_spec()
+    pha_off = phagen_obs_list[0].off_spec()
+    on_count  = pha_on.counts()
+    off_count = pha_off.counts()
+    alpha = pha_on.backscal(pha_on.size()-1) # spectrum bins-1
+    excess_count = on_count - alpha * off_count
 
     # maximum likelihood against onoff results
     like_models_file = os.path.join(d["dir"], "ml_result.xml")
     like_log_file    = os.path.join(d["dir"], "ctlike.log")
-    like = sobs.ctlike_run(d['obs_list'], input_models=args.model, output_models=like_models_file, log_file=like_log_file, force=args.force, save=args.save)
+    like = sobs.ctlike_run(phagen_obs_list, input_models=args.model, output_models=like_models_file, log_file=like_log_file, force=args.force, save=args.save)
     logging.info("maxlike {} done.".format(d["dir"]))
     logging.debug("Maximum Likelihood:\n", like.opt())
     logging.debug(like.obs())
