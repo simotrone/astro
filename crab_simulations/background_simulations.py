@@ -6,10 +6,9 @@ import logging
 import os
 import gammalib
 
-SOURCE = { 'name': 'Crab', 'ra': 83.6331, 'dec': 22.0145, 'model': 'crab.xml' }
-ENERGY = { 'min': 0.03, 'max': 150.0 }
-GENERGY = { 'min': gammalib.GEnergy(ENERGY['min'], 'TeV'),
-            'max': gammalib.GEnergy(ENERGY['max'], 'TeV'), }
+SOURCE = { 'name': 'Crab', 'ra': 83.6331, 'dec': 22.0145, 'model': 'crab_dof_1.xml',
+           'caldb': 'prod3b', 'irf': 'South_z20_average_30m', }
+ENERGY = { 'min': 0.025, 'max': 150.0 }
 TIME_SELECTION_SLOTS = [600, 100, 60, 30, 20, 10, 5, 4, 3, 2, 1]
 
 parser = argparse.ArgumentParser(description="Create simulations")
@@ -31,6 +30,8 @@ sobs = CToolsWrapper({ 'name': SOURCE['name'],
                        'dec': SOURCE['dec'],
                        'energy_min': ENERGY['min'],
                        'energy_max': ENERGY['max'],
+                       'caldb': SOURCE['caldb'],
+                       'irf':   SOURCE['irf'],
                        'seed': args.seed,
                        'nthreads': 2, }, 
                        verbosity=args.verbose )
@@ -111,7 +112,7 @@ for d in data_to_analyze:
     # maximum likelihood against onoff results
     like_models_file = os.path.join(d["dir"], "ml_result.xml")
     like_log_file    = os.path.join(d["dir"], "ctlike.log")
-    like = sobs.ctlike_run(phagen_obs_list, input_models=args.model, output_models=like_models_file, log_file=like_log_file, force=args.force, save=args.save)
+    like = sobs.ctlike_run(phagen_obs_list, input_models=phagen_obs_list.models(), output_models=like_models_file, log_file=like_log_file, force=args.force, save=args.save)
     logging.info("maxlike {} done.".format(d["dir"]))
     logging.debug("Maximum Likelihood:\n", like.opt())
     logging.debug(like.obs())
@@ -123,6 +124,8 @@ for d in data_to_analyze:
         ml_models.save(like_models_file)
 
     spectral_model = ml_models[0].spectral()
+    GENERGY = { 'min': gammalib.GEnergy(ENERGY['min'], 'TeV'),
+                'max': gammalib.GEnergy(ENERGY['max'], 'TeV'), }
     flux  = spectral_model.flux(GENERGY['min'], GENERGY['max'])  # ph/cm²/s
     eflux = spectral_model.eflux(GENERGY['min'], GENERGY['max']) # erg/cm²/s
 
