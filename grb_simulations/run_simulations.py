@@ -7,11 +7,9 @@ from lib.ctoolswrapper import CToolsWrapper
 from lib.exporter.csv import CSVExporter as csvex
 from lib.utils import li_ma, read_timeslices_tsv
 
-SOURCE = { "name": "run0406_ID000126", "ra": 33.057, "dec": -51.841, }
+SOURCE = { "name": "run0406_ID000126", "ra": 33.057, "dec": -51.841, 'caldb': 'prod3b', 'irf': 'South_z40_average_30m', }
 ENERGY = { "min": 0.03, "max": 150.0 }
-GENERGY = { 'min': gammalib.GEnergy(ENERGY['min'], 'TeV'),
-            'max': gammalib.GEnergy(ENERGY['max'], 'TeV'), }
-TIME_SELECTION_SLOTS = [600, 100, 60, 30, 10, 5]
+TIME_SELECTION_SLOTS = [600, 100, 60, 30, 20, 10, 5, 4, 3, 2, 1]
 
 # python explore_fits.py timeslices.tsv --tmax 1800 --model source_model.xml --dec-shift 0.5 --dir dec_0.5 --save -v
 parser = argparse.ArgumentParser(description="Create simulations and do analysis from a timeslices model")
@@ -39,7 +37,10 @@ sobs = CToolsWrapper({ 'name': SOURCE['name'],
                        'dec': SOURCE['dec'],
                        'energy_min': ENERGY['min'],
                        'energy_max': ENERGY['max'],
-                       'seed': args.seed, },
+                       'caldb': SOURCE['caldb'],
+                       'irf':   SOURCE['irf'],
+                       'seed': args.seed,
+                       'nthreads': 2, },
                        verbosity=args.verbose )
 pnt = { 'ra':  SOURCE['ra']  + args.ra_shift,
         'dec': SOURCE['dec'] + args.dec_shift }
@@ -82,7 +83,9 @@ data_to_analyze.append({ 'tmax': args.tmax,
                          'obs_list': sim_obs_list.clone(),
                          'dir': working_dir,
                          'ra':  pnt['ra'],
-                         'dec': pnt['dec'], })
+                         'dec': pnt['dec'],
+                         'emin': ENERGY['min'],
+                         'emax': ENERGY['max'], })
 
 # selections
 for t in TIME_SELECTION_SLOTS:
@@ -90,7 +93,7 @@ for t in TIME_SELECTION_SLOTS:
         logging.warning('Skipping time {} because greater of tmax.'.format(t))
         continue
 
-    sel_working_dir = os.path.join(working_dir, "sel_"+str(t))
+    sel_working_dir = os.path.join(working_dir, 'sel_{0:04d}_{1:.3f}_{2:.3f}'.format(t, ENERGY['min'], ENERGY['max']))
     if not os.path.isdir(sel_working_dir):
         os.mkdir(sel_working_dir)
     sel_log_file = os.path.join(sel_working_dir, "ctselect.log")
@@ -100,26 +103,30 @@ for t in TIME_SELECTION_SLOTS:
                              'obs_list': select.obs().clone(),
                              'dir': sel_working_dir,
                              'ra':  pnt['ra'],
-                             'dec': pnt['dec'], })
+                             'dec': pnt['dec'],
+                             'emin': ENERGY['min'],
+                             'emax': ENERGY['max'], })
     logging.info("Selection {} done.".format(sel_working_dir))
 
 # on/off analysis
 results = []
 for d in data_to_analyze:
     ### csphagen / onoff analysis
-    onoff_log_file = os.path.join(d["dir"], "csphagen.log")
-    onoff_obs_file = os.path.join(d["dir"], "onoff_obs_list.xml")
-    onoff_model_file = os.path.join(d["dir"], "onoff_result.xml")
-    onoff_prefix = os.path.join(d["dir"], "onoff")
+    onoff_log_file = os.path.join(d['dir'], 'csphagen.log')
+    onoff_obs_file = os.path.join(d['dir'], 'onoff_obs_list.xml')
+    onoff_model_file = os.path.join(d['dir'], 'onoff_result.xml')
+    onoff_prefix = os.path.join(d['dir'], 'onoff')
     if not args.model:
-        raise Exception("Without model cannot run the csphagen process")
-    phagen = sobs.csphagen_run(d["obs_list"], input_model=args.model, source_rad=0.2, output_obs_list=onoff_obs_file, output_model=onoff_model_file, log_file=onoff_log_file, prefix=onoff_prefix, stacked=True, force=args.force, save=args.save)
+        raise Exception('Without model cannot run the csphagen process')
+    phagen = sobs.csphagen_run(d['obs_list'], input_model=args.model, source_rad=0.2, output_obs_list=onoff_obs_file, output_model=onoff_model_file, log_file=onoff_log_file, prefix=onoff_prefix, stacked=True, force=args.force, save=args.save)
+    # csphagen alternative with 10 energy bins w/ LOG algo
+    # phagen = sobs.csphagen_run(d['obs_list'], input_model=args.model, source_rad=0.2, ebinalg='LOG', enumbins=10, output_obs_list=onoff_obs_file, output_model=onoff_model_file, log_file=onoff_log_file, prefix=onoff_prefix, stacked=True, force=args.force, save=args.save)
     phagen_obs_list = phagen.obs()
     if phagen_obs_list.size() == 0:
-        logging.error("csphagen doesn't provide an on/off observation list for {}/{}".format(d["tmax"], d["dir"]))
+        logging.error("csphagen doesn't provide an on/off observation list for {}/{}".format(d['tmax'], d['dir']))
         break
-    logging.info("on/off {} done.".format(d["dir"]))
-    logging.debug("OnOff list:\n", phagen_obs_list)
+    logging.info('on/off {} done.'.format(d['dir']))
+    logging.debug('OnOff list:\n', phagen_obs_list)
     logging.debug(phagen_obs_list[0]) # GCTAOnOffObservation
     logging.debug(phagen_obs_list.models())
 
@@ -145,6 +152,8 @@ for d in data_to_analyze:
         ml_models.save(like_models_file)
 
     spectral_model = ml_models[0].spectral()
+    GENERGY = { 'min': gammalib.GEnergy(ENERGY['min'], 'TeV'),
+                'max': gammalib.GEnergy(ENERGY['max'], 'TeV'), }
     flux  = spectral_model.flux(GENERGY['min'], GENERGY['max'])  # ph/cm²/s
     eflux = spectral_model.eflux(GENERGY['min'], GENERGY['max']) # erg/cm²/s
 
@@ -153,6 +162,8 @@ for d in data_to_analyze:
                      'dec':  pnt['dec'],
                      'seed': args.seed,
                      'tmax': d['tmax'],
+                     'emin': d['emin'],
+                     'emax': d['emax'],
                      'ts': ml_models[0].ts(),
                      'index_value': ml_models[0]['Index'].value(),
                      'index_error': ml_models[0]['Index'].error(),
