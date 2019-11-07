@@ -1,5 +1,5 @@
 SEED=${1:-1}
-OPTIONS=${2:-""}
+OPTIONS=${@:2}
 MODEL="crab.xml"
 
 python run_simulations.py $MODEL --dir dec_0.5 --tmax 1800 --dec-shift 0.5 --model $MODEL --seed $SEED $OPTIONS &

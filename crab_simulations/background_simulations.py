@@ -6,6 +6,10 @@ import logging
 import os
 import gammalib
 
+logger = logging.getLogger('application')
+# logger.setLevel('DEBUG')
+logger.addHandler(logging.StreamHandler())
+
 SOURCE = { 'name': 'Crab', 'ra': 83.6331, 'dec': 22.0145, 'model': 'crab_dof_1.xml',
            'caldb': 'prod3b', 'irf': 'South_z20_average_30m', }
 ENERGY = { 'min': 0.025, 'max': 150.0 }
@@ -40,7 +44,7 @@ working_dir = os.path.join(args.dir, str(args.seed))
 try:
     os.makedirs(working_dir)
 except FileExistsError as e:
-    logging.info("The data dir {} already exists".format(working_dir))
+    logger.info("The data dir {} already exists".format(working_dir))
 
 # simulate events
 events_file = os.path.join(working_dir, "events.fits")
@@ -50,6 +54,7 @@ pnt = { 'ra':  SOURCE['ra']  + args.ra_shift,
         'dec': SOURCE['dec'] + args.dec_shift }
 
 sim = sobs.simulation_run(model_file=args.simulation_model, events_file=events_file, ra=pnt['ra'], dec=pnt['dec'], time=[0, args.tmax], log_file=log_file, force=args.force, save=args.save)
+logger.debug("Simulation:\n"+str(sim))
 if sim.obs().size() != 1:
     raise Exception("None or too many simulated observations")
 
@@ -65,7 +70,7 @@ data_to_analyze.append({ 'tmax': args.tmax,
 # selections
 for t in TIME_SELECTION_SLOTS:
     if t >= args.tmax:
-        logging.warning('Skipping time {} because greater of tmax.'.format(t))
+        logger.warning('Skipping time {} because greater of tmax.'.format(t))
         continue
 
     sel_working_dir = os.path.join(working_dir, "sel_"+str(t))
@@ -74,13 +79,14 @@ for t in TIME_SELECTION_SLOTS:
     sel_obs_file = os.path.join(sel_working_dir, "events.fits")
     sel_log_file = os.path.join(sel_working_dir, "ctselect.log")
     select = sobs.selection_run(input_obs_list=sim_obs_list, output_obs_list=sel_obs_file, tmin=0, tmax=t, prefix=os.path.join(sel_working_dir, "selected_"), log_file=sel_log_file, force=args.force, save=args.save)
+    logger.debug("Selection:\n"+str(select))
 
     data_to_analyze.append({ 'tmax': t,
                              'obs_list': select.obs().clone(),
                              'dir': sel_working_dir,
                              'ra':  pnt['ra'],
                              'dec': pnt['dec'], })
-    logging.info("Selection {} done.".format(sel_working_dir))
+    logger.info("Selection {} done.".format(sel_working_dir))
 
 # on/off analysis
 results = []
@@ -93,14 +99,15 @@ for d in data_to_analyze:
     if not args.model:
         raise Exception("Without model cannot run the csphagen process")
     phagen = sobs.csphagen_run(d["obs_list"], input_model=args.model, source_rad=0.2, ebinalg="LOG", enumbins=10, output_obs_list=onoff_obs_file, output_model=onoff_model_file, log_file=onoff_log_file, prefix=onoff_prefix, force=args.force, save=args.save)
+    logger.debug("phagen:\n"+str(phagen))
     phagen_obs_list = phagen.obs()
     if phagen_obs_list.size() == 0:
-        logging.error("csphagen doesn't provide an on/off observation list for {}/{}".format(d["tmax"], d["dir"]))
+        logger.error("csphagen doesn't provide an on/off observation list for {}/{}".format(d["tmax"], d["dir"]))
         break
-    logging.info("on/off {} done.".format(d["dir"]))
-    logging.debug("OnOff list:\n", phagen_obs_list)
-    logging.debug(phagen_obs_list[0]) # GCTAOnOffObservation
-    logging.debug(phagen_obs_list.models())
+    logger.info("on/off {} done.".format(d["dir"]))
+    logger.debug("OnOff list:\n"+str(phagen_obs_list))
+    logger.debug("GCTAOnOffObservation:\n"+str(phagen_obs_list[0]))
+    logger.debug("GCTAOnOffObservation models:\n"+str(phagen_obs_list.models()))
 
     pha_on  = phagen_obs_list[0].on_spec()
     pha_off = phagen_obs_list[0].off_spec()
@@ -113,10 +120,11 @@ for d in data_to_analyze:
     like_models_file = os.path.join(d["dir"], "ml_result.xml")
     like_log_file    = os.path.join(d["dir"], "ctlike.log")
     like = sobs.ctlike_run(phagen_obs_list, input_models=phagen_obs_list.models(), output_models=like_models_file, log_file=like_log_file, force=args.force, save=args.save)
-    logging.info("maxlike {} done.".format(d["dir"]))
-    logging.debug("Maximum Likelihood:\n", like.opt())
-    logging.debug(like.obs())
-    logging.debug(like.obs().models())
+    logger.debug("like:\n"+str(like))
+    logger.info("maxlike {} done.".format(d["dir"]))
+    logger.debug("Maximum Likelihood:\n"+str(like.opt()))
+    logger.debug("like observation:\n"+str(like.obs()))
+    logger.debug("like models:\n"+str(like.obs().models()))
 
     # summary
     ml_models = like.obs().models()
