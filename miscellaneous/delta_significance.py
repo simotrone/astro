@@ -4,6 +4,7 @@ import gammalib as gl
 import math
 import sys
 from lib.utils import li_ma
+import argparse
 # PYTHONPATH=path/to/lib python delta_significance.py onoff_obs_list.xml ml_result.xml 
 
 def inspect_onoff_observations(onoff_obs_file):
@@ -41,6 +42,11 @@ def inspect_likelihood_model(model):
 
 if __name__ == '__main__':
     #onoff_obs_file = 'onoff_obs_list.xml'
-    lima_sign = inspect_onoff_observations(sys.argv[1])
-    like_sign = inspect_likelihood_model(sys.argv[2])
-    print('Δ significance: {0:.6f}'.format(lima_sign-like_sign))
+    parser = argparse.ArgumentParser(description="Compare onoff vs model ts")
+    parser.add_argument("onoff_observation_file", help="the xml file with onoff data (pha)")
+    parser.add_argument("-m", "--model", help="ctlike output model")
+    args = parser.parse_args()
+    lima_sign = inspect_onoff_observations(args.onoff_observation_file)
+    if args.model:
+        like_sign = inspect_likelihood_model(args.model)
+        print('Δ significance: {0:.6f}'.format(lima_sign-like_sign))
