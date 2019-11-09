@@ -53,29 +53,29 @@ class Photometrics():
         hdul.close()
         return data
 
-    def get_region_center(self, input_center):
-        region_center = None
-        if isinstance(input_center, SkyCoord):
-            region_center = input_center
-        elif isinstance(input_center, dict) and 'ra' in input_center and 'dec' in input_center:
-            region_center = SkyCoord(ra=input_center['ra'], dec=input_center['dec'], unit='deg', frame='icrs')
+    def get_skycoord(self, pnt_coord):
+        coord = None
+        if isinstance(pnt_coord, SkyCoord):
+            coord = pnt_coord
+        elif isinstance(pnt_coord, dict) and 'ra' in pnt_coord and 'dec' in pnt_coord:
+            coord = SkyCoord(ra=pnt_coord['ra'], dec=pnt_coord['dec'], unit='deg', frame='icrs')
         else:
-            raise Exception('The region center must be a SkyCoord or a { "ra": 12.3, "dec": 45.6 } dictionary.')
-        return region_center
+            raise Exception('The input parameter must be a SkyCoord or a { "ra": 12.3, "dec": 45.6 } dictionary.')
+        return coord
 
-    def get_region_radius(self, input_radius):
-        region_radius = None
-        if isinstance(input_radius, Angle):
-            region_radius = input_radius
-        elif isinstance(input_radius, float):
-            region_radius = Angle(input_radius, unit='deg')
+    def get_angle(self, input_angle):
+        ang = None
+        if isinstance(input_angle, Angle):
+            ang = input_angle
+        elif isinstance(input_angle, float):
+            ang = Angle(input_angle, unit='deg')
         else:
-            raise Exception('The region radius must be an Angle or a float for decimal degree.')
-        return region_radius
+            raise Exception('The input parameter must be an Angle or a float for decimal degree.')
+        return ang
 
     def region_counter(self, input_center, input_radius, emin=None, emax=None):
-        region_center = self.get_region_center(input_center)
-        region_radius = self.get_region_radius(input_radius)
+        region_center = self.get_skycoord(input_center)
+        region_radius = self.get_angle(input_radius)
 
         # filtering...
         condlist = [True] * len(self.events_data.field('ENERGY'))
