@@ -53,7 +53,7 @@ class Photometrics():
         hdul.close()
         return data
 
-    def region_counter(self, input_center, input_radius, emin=None, emax=None):
+    def get_region_center(self, input_center):
         region_center = None
         if isinstance(input_center, SkyCoord):
             region_center = input_center
@@ -61,6 +61,9 @@ class Photometrics():
             region_center = SkyCoord(ra=input_center['ra'], dec=input_center['dec'], unit='deg', frame='icrs')
         else:
             raise Exception('The region center must be a SkyCoord or a { "ra": 12.3, "dec": 45.6 } dictionary.')
+        return region_center
+
+    def get_region_radius(self, input_radius):
         region_radius = None
         if isinstance(input_radius, Angle):
             region_radius = input_radius
@@ -68,9 +71,14 @@ class Photometrics():
             region_radius = Angle(input_radius, unit='deg')
         else:
             raise Exception('The region radius must be an Angle or a float for decimal degree.')
+        return region_radius
+
+    def region_counter(self, input_center, input_radius, emin=None, emax=None):
+        region_center = self.get_region_center(input_center)
+        region_radius = self.get_region_radius(input_radius)
 
         # filtering...
-        condlist = [True] * len(self.events_data.field('energy'))
+        condlist = [True] * len(self.events_data.field('ENERGY'))
         # ... w/ energy boundaries
         if emin is not None:
             condlist &= self.events_data.field('ENERGY') >= emin
