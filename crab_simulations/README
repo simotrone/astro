@@ -1,3 +1,9 @@
 we execute the script with 1 seed for cpu
 
 time printf %s\\n {1..1000} | xargs -P 10 -n 1 -I {} sbatch starter.sh {}
+
+# sbatch script
+#!/bin/bash
+#SBATCH --partition=deeplearning
+#SBATCH --job-name=test
+SEED=$1 python exec.py
