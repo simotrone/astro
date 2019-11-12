@@ -92,7 +92,51 @@ class Photometrics():
         distances = region_center.separation(events_coords)
         return np.count_nonzero(distances < region_radius)
 
+    def reflected_regions(self, input_pointing_center, input_region_center, input_region_radius):
+        """Find regions with reflected algorithm.
+
+        Parameters
+        ----------
+        input_pointing_center: SkyCoord or dict
+        input_region_center: SkyCoord or dict
+        input_region_radius: Angle or float
+
+        Returns
+        -------
+        array of regions
+        """
+        pointing_center = self.get_skycoord(input_pointing_center)
+        region_center = self.get_skycoord(input_region_center)
+        region_radius = self.get_angle(input_region_radius)
+
+        # Angular separation of reflected regions. 1.05 factor is to have a margin
+        region_diameter = 1.05 * 2.0 * region_radius
+        radius = pointing_center.separation(region_center)
+        numbers_of_reflected_regions = int(2 * np.pi * radius / region_diameter) # floor down
+        regions_offset_angle = Angle(360, unit='deg') / numbers_of_reflected_regions
+
+        regions = []
+        # starting from the source region 0, we skip region 1 and region N, so 2..N-1
+        starting_pos_angle = pointing_center.position_angle(region_center)
+        for i in range(2, numbers_of_reflected_regions-1):
+            theta = starting_pos_angle + i * regions_offset_angle
+            coord_pos = pointing_center.directional_offset_by(theta, radius)
+            regions.append({ 'ra': coord_pos.ra.deg, 'dec': coord_pos.dec.deg, 'rad': region_radius.deg })
+        return regions
+
     def wobble_regions(self, input_pointing_center, input_region_center, input_region_radius):
+        """Return the three background regions starting from pointing and source one.
+
+        Parameters
+        ----------
+        input_pointing_center: SkyCoord or dict
+        input_region_center: SkyCoord or dict
+        input_region_radius: Angle or float
+
+        Returns
+        -------
+        array of regions
+        """
         pointing_center = self.get_skycoord(input_pointing_center)
         region_center = self.get_skycoord(input_region_center)
         region_radius = self.get_angle(input_region_radius)
@@ -102,6 +146,6 @@ class Photometrics():
         for i in range(1,4):
             theta = starting_pos_angle + i * Angle(90, unit='deg')
             coord_pos = pointing_center.directional_offset_by(theta, radius)
-            regions.append(coord_pos)
+            regions.append({ 'ra': coord_pos.ra.deg, 'dec': coord_pos.dec.deg, 'rad': region_radius.deg })
         return regions
 
