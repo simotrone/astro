@@ -74,11 +74,12 @@ class Photometrics():
         return ang
 
     def region_counter(self, input_center, input_radius, emin=None, emax=None):
+        """Counts photons in an input area"""
         region_center = self.get_skycoord(input_center)
         region_radius = self.get_angle(input_radius)
 
         # filtering...
-        condlist = [True] * len(self.events_data.field('ENERGY'))
+        condlist = np.full(len(self.events_data.field('ENERGY')), True)
         # ... w/ energy boundaries
         if emin is not None:
             condlist &= self.events_data.field('ENERGY') >= emin
@@ -86,8 +87,8 @@ class Photometrics():
             condlist &= self.events_data.field('ENERGY') <= emax
 
         events_list = np.extract(condlist, self.events_data)
-        coord = SkyCoord(events_list.field('RA'), events_list.field('DEC'), unit='deg', frame='icrs')
-
-        distances = region_center.separation(coord)
+        # events coordinates from the selected events list
+        events_coords = SkyCoord(events_list.field('RA'), events_list.field('DEC'), unit='deg', frame='icrs')
+        distances = region_center.separation(events_coords)
         return np.count_nonzero(distances < region_radius)
 
