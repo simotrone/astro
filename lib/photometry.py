@@ -92,3 +92,16 @@ class Photometrics():
         distances = region_center.separation(events_coords)
         return np.count_nonzero(distances < region_radius)
 
+    def wobble_regions(self, input_pointing_center, input_region_center, input_region_radius):
+        pointing_center = self.get_skycoord(input_pointing_center)
+        region_center = self.get_skycoord(input_region_center)
+        region_radius = self.get_angle(input_region_radius)
+        radius = pointing_center.separation(region_center)
+        starting_pos_angle = pointing_center.position_angle(region_center)
+        regions = []
+        for i in range(1,4):
+            theta = starting_pos_angle + i * Angle(90, unit='deg')
+            coord_pos = pointing_center.directional_offset_by(theta, radius)
+            regions.append(coord_pos)
+        return regions
+
