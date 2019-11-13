@@ -19,20 +19,31 @@ class Photometrics():
     def __init__(self, args):
         self.events_data = None
         self.events_filename = None
+        self.mandatory_fields = ['RA', 'DEC', 'ENERGY']
         if 'events_filename' in args:
             self.events_filename = args['events_filename']
-            self.events_data = load_data_from_fits_file(self.events_filename)
+            self.events_data = self.load_data_from_fits_file(self.events_filename)
         elif 'events_list' in args:
             self.events_data = args['events_list']
         self.events_list_checks()
+        logging.info('Events data type: {}'.format(type(self.events_data)))
 
     def events_list_checks(self):
+        """Data con be a FITS_rec or a np.recarray
+        see here: https://docs.astropy.org/en/stable/io/fits/usage/table.html
+        """
         if self.events_data is None:
             raise Exception('Events data is empy. Need a events list.')
-        cols_names = self.events_data.columns.names
-        for f in ['RA', 'DEC', 'ENERGY']:
-            if f not in cols_names:
-                raise Exception("Events data has no '{}' col".format(f))
+        if isinstance(self.events_data, fits.fitsrec.FITS_rec):
+            for f in self.mandatory_fields:
+                if f not in self.events_data.columns.names:
+                    raise Exception("Events data has no '{}' col".format(f))
+        elif isinstance(self.events_data, np.recarray):
+            for f in self.mandatory_fields:
+                if f not in self.events_data.dtype.names:
+                    raise Exception("Events data has no '{}' col".format(f))
+        else:
+            raise Exception("Events data must be FITS_rec or np.recarray")
 
     @staticmethod
     def load_data_from_fits_file(filename):
