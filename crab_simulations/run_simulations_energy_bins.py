@@ -7,22 +7,20 @@ import argparse
 import logging
 import os
 import gammalib
-import pprint
-pp = pprint.PrettyPrinter()
 
-SOURCE = { 'name': 'Crab', 'ra': 83.6331, 'dec': 22.0145, 'model': 'crab.xml',
-           'caldb': 'prod3b', 'irf': 'South_z20_average_30m', }
+SOURCE = { 'name': 'Crab', 'ra': 83.6331, 'dec': 22.0145,
+           'caldb': 'prod3b-v2', 'irf': 'South_z20_0.5h', }
 ENERGY = { 'min': 0.025, 'max': 150.0 }
 TIME_SELECTION_SLOTS = [600, 100, 60, 30, 20, 10, 5, 4, 3, 2, 1]
 ENERGY_SELECTION = [ { 'min': ENERGY['min'], 'max': ENERGY['max'] },
-                     # { 'min': ENERGY['min'], 'max': 0.032 },
-                     # { 'min': 0.032,         'max': 0.050 },
-                     # { 'min': 0.050,         'max': 0.080 },
-                     # { 'min': 0.080,         'max': 0.126 },
-                     # { 'min': 0.126,         'max': 0.200 },
-                     # { 'min': 0.200,         'max': 0.316 },
-                     # { 'min': 0.316,         'max': 0.500 },
-                     # { 'min': 0.500,         'max': 0.800 },
+                     { 'min': ENERGY['min'], 'max': 0.032 },
+                     { 'min': 0.032,         'max': 0.050 },
+                     { 'min': 0.050,         'max': 0.080 },
+                     { 'min': 0.080,         'max': 0.126 },
+                     { 'min': 0.126,         'max': 0.200 },
+                     { 'min': 0.200,         'max': 0.316 },
+                     { 'min': 0.316,         'max': 0.500 },
+                     { 'min': 0.500,         'max': 0.800 },
                      { 'min': 0.029,         'max': ENERGY['max'] },
                      { 'min': 0.041,         'max': ENERGY['max'] },
                      { 'min': 0.065,         'max': ENERGY['max'] },
@@ -169,9 +167,9 @@ for d in data_to_analyze:
         logging.error("csphagen doesn't provide an on/off observation list for {}/{}".format(d["tmax"], d["dir"]))
         break
     logging.info("on/off {} done.".format(d["dir"]))
-    logging.debug("OnOff list:\n", phagen_obs_list)
-    logging.debug(phagen_obs_list[0]) # GCTAOnOffObservation
-    logging.debug(phagen_obs_list.models())
+    logging.debug("OnOff list:\n"+str(phagen_obs_list))
+    logging.debug("GCTAOnOffObservation\n"+str(phagen_obs_list[0]))
+    logging.debug("GCTAOnOffObservation models\n"+str(phagen_obs_list.models()))
 
     pha_on  = phagen_obs_list[0].on_spec()
     pha_off = phagen_obs_list[0].off_spec()
@@ -185,9 +183,9 @@ for d in data_to_analyze:
     like_log_file    = os.path.join(d["dir"], "ctlike.log")
     like = sobs.ctlike_run(phagen_obs_list, input_models=phagen_obs_list.models(), output_models=like_models_file, log_file=like_log_file, force=args.force, save=args.save)
     logging.info("maxlike {} done.".format(d["dir"]))
-    logging.debug("Maximum Likelihood:\n", like.opt())
-    logging.debug(like.obs())
-    logging.debug(like.obs().models())
+    logging.debug("Maximum Likelihood:\n"+str(like.opt()))
+    logging.debug("like obs\n"+str(like.obs()))
+    logging.debug("like models\n"+str(like.obs().models()))
 
     # summary
     ml_models = like.obs().models()
@@ -224,6 +222,7 @@ for d in data_to_analyze:
                      'phm_on': photometrics_results['on'],
                      'phm_off': photometrics_results['off'],
                      'phm_excess': photometrics_results['excess'],
+                     'phm_li_ma': li_ma(photometrics_results['on'], photometrics_results['off'], photometrics_results['alpha']),
                      })
 
 try:
