@@ -3,6 +3,8 @@ import ctools
 import gammalib
 import os
 import sys
+import logging
+logger = logging.getLogger('ctoolswrapper')
 
 class CToolsWrapper:
     def __init__(self, args, verbosity=0):
@@ -25,6 +27,7 @@ class CToolsWrapper:
                 self.__dict__[field] = args[field]
             else:
                 self.__dict__[field] = args[field] if field in args and args[field] else default
+        logger.setLevel(logging.WARNING - 10*verbosity)
 
     def simulation_run(self, model_file, events_file, ra=None, dec=None, time=[0, 1800], energy=[None, None], log_file='ctobssim.log', force=False, save=False):
         sim = ctools.ctobssim()
@@ -55,8 +58,7 @@ class CToolsWrapper:
         if (save and force) or (save and not os.path.isfile(events_file)):
             sim.save()
             saved = True
-        if saved and self.verbosity > 1:
-            print("Events file '{}' saved. time [{}-{}]".format(sim["outevents"].value(), time[0], time[1]), file=sys.stderr)
+            logger.info("Events file '{}' saved. time [{}-{}]".format(sim["outevents"].value(), time[0], time[1]))
         return sim
 
     def selection_run(self, input_obs_list, output_obs_list, tmin=0, tmax=None, energy=[None, None], prefix='selected_', log_file='ctselect.log', force=False, save=False):
@@ -98,8 +100,7 @@ class CToolsWrapper:
         if (save and force) or (save and not os.path.isfile(output_obs_list)):
             select.save() # why it doesn't save anytime?
             saved = True
-        if saved and self.verbosity > 1:
-            print("Files {} created.".format(output_obs_list), file=sys.stderr)
+            logger.info("Files {} created.".format(output_obs_list))
         return select
 
     def csphagen_run(self, input_obs_list, input_model=None, source_rad=0.2, energy=[None, None], output_obs_list='onoff_obs.xml', output_model='onoff_result.xml', log_file='csphagen.log', prefix='onoff', ebinalg="LIN", enumbins=1, stacked=False, force=False, save=False):
@@ -145,8 +146,7 @@ class CToolsWrapper:
         if (save and force) or (save and not os.path.isfile(output_obs_list)) or (save and not os.path.isfile(output_model)):
             phagen.save()
             saved = True
-        if saved and self.verbosity > 1:
-            print("Files {}, {} created.".format(output_obs_list, output_model), file=sys.stderr)
+            logger.info("Files {}, {} created.".format(output_obs_list, output_model))
         return phagen
 
     def ctlike_run(self, input_obs_list, input_models=None, output_models='ml_result.xml', log_file='ctlike.log', force=False, save=False):
@@ -176,8 +176,7 @@ class CToolsWrapper:
         if (save and force) or (save and not os.path.isfile(output_models)):
             like.save()
             saved = True
-        if saved and self.verbosity > 1:
-            print("File {} created.".format(output_models), file=sys.stderr)
+            logger.info("File {} created.".format(output_models))
         return like
 
     def csspec_run(self, input_obs_list, input_models=None, enumbins=20, output_file='spectrum.fits', log_file='csspec.log', force=False, save=False):
@@ -214,7 +213,6 @@ class CToolsWrapper:
         if (save and force) or (save and not os.path.isfile(output_file)):
             spec.save()
             saved = True
-        if saved and self.verbosity > 1:
-            print("File {} created.".format(output_file), file=sys.stderr)
+            logger.info("File {} created.".format(output_file))
         return spec
 
