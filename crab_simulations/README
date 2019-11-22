@@ -7,3 +7,7 @@ time printf %s\\n {1..1000} | xargs -P 10 -n 1 -I {} sbatch starter.sh {}
 #SBATCH --partition=deeplearning
 #SBATCH --job-name=test
 SEED=$1 python exec.py
+
+# tests
+# PYTHONPATH=../ python background_simulations.py only_background.xml --dir test_8_bkg --tmax 1800 --dec-shift 0.5 --model crab_dof_3.xml --save --seed 1
+# PYTHONPATH=../ python run_simulations_energy_bins.py crab.xml --dir test_7 --tmax 1800 --dec-shift 0.5 --model crab.xml --save --seed 4
