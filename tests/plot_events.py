@@ -1,3 +1,4 @@
+import zlib
 import argparse
 import collections
 import gammalib
