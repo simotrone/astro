@@ -2,9 +2,6 @@ import gammalib as g
 import sys
 import numpy as np
 
-# events_fn = sys.argv[1]
-# print('reading file:', events_fn)
-# gobs = g.GCTAObservation(events_fn)
 gobs = g.GCTAObservation()
 caldb = g.GCaldb('cta', 'prod3b')
 irf = 'South_z20_average_30m'
