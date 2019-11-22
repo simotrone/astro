@@ -132,11 +132,16 @@ def events_gammalib2rec(obs_list):
     events.write(fits) # GFits
     events_bintable = fits.table('EVENTS') # GFitsTable
     events_num = events_bintable.nrows()
-    tuples = [ (events_bintable['RA'][i], events_bintable['DEC'][i], events_bintable['ENERGY'][i]) for i in range(events_num) ]
-    return np.rec.array(tuples, formats='float,float,float', names='RA,DEC,ENERGY')
+    if events_num > 0:
+        tuples = [ (events_bintable['RA'][i], events_bintable['DEC'][i], events_bintable['ENERGY'][i]) for i in range(events_num) ]
+        return np.rec.array(tuples, formats='float,float,float', names='RA,DEC,ENERGY')
+    else:
+        return None
 
 def photometrics_counts(data):
     events_list = events_gammalib2rec(data['obs_list'])
+    if events_list is None:
+        return { 'on': 0, 'off': 0, 'alpha': None, 'excess': None }
     phm = Photometrics({ 'events_list': events_list })
     pnt_coords = { 'ra': data['ra'], 'dec': data['dec'] }
     source_coords = { 'ra': SOURCE['ra'], 'dec': SOURCE['dec'] }
