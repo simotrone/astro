@@ -1,18 +1,7 @@
 from astropy.io import fits
-from astropy.coordinates import Angle
 import numpy as np
 from scipy import interpolate
-
-# same method in photometrics :-/
-def get_angle(input_angle):
-    ang = None
-    if isinstance(input_angle, Angle):
-        ang = input_angle
-    elif isinstance(input_angle, float):
-        ang = Angle(input_angle, unit='deg')
-    else:
-        raise Exception('The input parameter must be an Angle or a float for decimal degree.')
-    return ang
+from lib import utils 
 
 class IRF:
     def __init__(self, filename):
@@ -77,7 +66,7 @@ class EffectiveArea:
         This method does 1D interpolation on energy range, managed as log10.
         Theta offset is not interpolated.
         """
-        offset_angle = get_angle(offset)
+        offset_angle = utils.get_angle(offset)
         aeff_matrix, energy_bins, theta_bins = self.get_data_matrices()
 
         theta_index = None
@@ -103,7 +92,7 @@ class EffectiveArea:
 
         This method does 2D interpolation and manage energy as log10.
         """
-        offset_angle = get_angle(input_offset)
+        offset_angle = utils.get_angle(input_offset)
         aeff_matrix, energy_bins, theta_bins = self.get_data_matrices()
 
         # energy interpolation

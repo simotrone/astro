@@ -1,5 +1,6 @@
 from astropy.coordinates import SkyCoord, Angle
 from astropy.io import fits
+from lib import utils
 import astropy.units as u
 import numpy as np
 import logging
@@ -64,30 +65,10 @@ class Photometrics():
         hdul.close()
         return data
 
-    def get_skycoord(self, pnt_coord):
-        coord = None
-        if isinstance(pnt_coord, SkyCoord):
-            coord = pnt_coord
-        elif isinstance(pnt_coord, dict) and 'ra' in pnt_coord and 'dec' in pnt_coord:
-            coord = SkyCoord(ra=pnt_coord['ra'], dec=pnt_coord['dec'], unit='deg', frame='icrs')
-        else:
-            raise Exception('The input parameter must be a SkyCoord or a { "ra": 12.3, "dec": 45.6 } dictionary.')
-        return coord
-
-    def get_angle(self, input_angle):
-        ang = None
-        if isinstance(input_angle, Angle):
-            ang = input_angle
-        elif isinstance(input_angle, float):
-            ang = Angle(input_angle, unit='deg')
-        else:
-            raise Exception('The input parameter must be an Angle or a float for decimal degree.')
-        return ang
-
     def region_counter(self, input_center, input_radius, emin=None, emax=None):
         """Counts photons in an input area"""
-        region_center = self.get_skycoord(input_center)
-        region_radius = self.get_angle(input_radius)
+        region_center = utils.get_skycoord(input_center)
+        region_radius = utils.get_angle(input_radius)
 
         # filtering...
         condlist = np.full(len(self.events_data.field('ENERGY')), True)
@@ -116,9 +97,9 @@ class Photometrics():
         -------
         array of regions
         """
-        pointing_center = self.get_skycoord(input_pointing_center)
-        region_center = self.get_skycoord(input_region_center)
-        region_radius = self.get_angle(input_region_radius)
+        pointing_center = utils.get_skycoord(input_pointing_center)
+        region_center = utils.get_skycoord(input_region_center)
+        region_radius = utils.get_angle(input_region_radius)
 
         # Angular separation of reflected regions. 1.05 factor is to have a margin
         region_diameter = 1.05 * 2.0 * region_radius
@@ -148,9 +129,9 @@ class Photometrics():
         -------
         array of regions
         """
-        pointing_center = self.get_skycoord(input_pointing_center)
-        region_center = self.get_skycoord(input_region_center)
-        region_radius = self.get_angle(input_region_radius)
+        pointing_center = utils.get_skycoord(input_pointing_center)
+        region_center = utils.get_skycoord(input_region_center)
+        region_radius = utils.get_angle(input_region_radius)
         radius = pointing_center.separation(region_center)
         starting_pos_angle = pointing_center.position_angle(region_center)
         regions = []
