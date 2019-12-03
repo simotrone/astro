@@ -25,3 +25,4 @@ print("      FK5: ", fk5)
 print("   Degree: ", fk5.to_string('dms'))
 print("Hours+Deg: ", fk5.to_string('hmsdms'))
 print("  Decimal: ", fk5.to_string('decimal'))
+
