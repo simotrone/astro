@@ -84,7 +84,8 @@ class Photometrics():
         distances = region_center.separation(events_coords)
         return np.count_nonzero(distances < region_radius)
 
-    def reflected_regions(self, input_pointing_center, input_region_center, input_region_radius):
+    @classmethod
+    def reflected_regions(cls, input_pointing_center, input_region_center, input_region_radius):
         """Find regions with reflected algorithm.
 
         Parameters
@@ -116,7 +117,8 @@ class Photometrics():
             regions.append({ 'ra': coord_pos.ra.deg, 'dec': coord_pos.dec.deg, 'rad': region_radius.deg })
         return regions
 
-    def wobble_regions(self, input_pointing_center, input_region_center, input_region_radius):
+    @classmethod
+    def wobble_regions(cls, input_pointing_center, input_region_center, input_region_radius):
         """Return the three background regions starting from pointing and source one.
 
         Parameters
