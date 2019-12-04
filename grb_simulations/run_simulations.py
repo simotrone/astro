@@ -6,9 +6,12 @@ import sys
 from lib.ctoolswrapper import CToolsWrapper
 from lib.exporter.csv import CSVExporter as csvex
 from lib.utils import li_ma, read_timeslices_tsv
+from lib.photometry import Photometrics
+import numpy as np
 
-SOURCE = { "name": "run0406_ID000126", "ra": 33.057, "dec": -51.841, 'caldb': 'prod3b', 'irf': 'South_z40_average_30m', }
-ENERGY = { "min": 0.03, "max": 150.0 }
+SOURCE = { "name": "run0406_ID000126", "ra": 33.057, "dec": -51.841,
+           'caldb': 'prod3b-v2', 'irf': 'South_z40_0.5h', }
+ENERGY = { "min": 0.025, "max": 150.0 }
 TIME_SELECTION_SLOTS = [600, 100, 60, 30, 20, 10, 5, 4, 3, 2, 1]
 
 # python explore_fits.py timeslices.tsv --tmax 1800 --model source_model.xml --dec-shift 0.5 --dir dec_0.5 --save -v
@@ -108,9 +111,37 @@ for t in TIME_SELECTION_SLOTS:
                              'emax': ENERGY['max'], })
     logging.info("Selection {} done.".format(sel_working_dir))
 
+def events_gammalib2rec(obs_list):
+    ev_list = []
+    for obs in obs_list:
+        events = obs.events() # GCTAEventList
+        fits = gammalib.GFits()
+        events.write(fits) # GFits
+        events_bintable = fits.table('EVENTS') # GFitsTable
+        events_num = events_bintable.nrows()
+        tuples = [ (events_bintable['RA'][i], events_bintable['DEC'][i], events_bintable['ENERGY'][i]) for i in range(events_num) ]
+        ev_list += tuples
+    return np.rec.array(ev_list, formats='float,float,float', names='RA,DEC,ENERGY')
+
+def photometrics_counts(data):
+    events_list = events_gammalib2rec(data['obs_list'])
+    phm = Photometrics({ 'events_list': events_list })
+    pnt_coords = { 'ra': data['ra'], 'dec': data['dec'] }
+    source_coords = { 'ra': SOURCE['ra'], 'dec': SOURCE['dec'] }
+    region_rad = 0.2
+    reflected_regions = phm.reflected_regions(pnt_coords, source_coords, region_rad)
+    on_count = phm.region_counter(source_coords, region_rad) # no energy thresholds, emin=data['emin'], emax=data['emax'])
+    off_count = 0
+    for r in reflected_regions:
+        off_count += phm.region_counter(r, r['rad']) # no energy thresholds emin=data['emin'], emax=data['emax'])
+    alpha = 1/len(reflected_regions)
+    return { 'on': on_count, 'off': off_count, 'alpha': alpha, 'excess': on_count - alpha * off_count }
+
 # on/off analysis
 results = []
 for d in data_to_analyze:
+    photometrics_results = photometrics_counts(d)
+
     ### csphagen / onoff analysis
     onoff_log_file = os.path.join(d['dir'], 'csphagen.log')
     onoff_obs_file = os.path.join(d['dir'], 'onoff_obs_list.xml')
@@ -118,9 +149,7 @@ for d in data_to_analyze:
     onoff_prefix = os.path.join(d['dir'], 'onoff')
     if not args.model:
         raise Exception('Without model cannot run the csphagen process')
-    phagen = sobs.csphagen_run(d['obs_list'], input_model=args.model, source_rad=0.2, output_obs_list=onoff_obs_file, output_model=onoff_model_file, log_file=onoff_log_file, prefix=onoff_prefix, stacked=True, force=args.force, save=args.save)
-    # csphagen alternative with 10 energy bins w/ LOG algo
-    # phagen = sobs.csphagen_run(d['obs_list'], input_model=args.model, source_rad=0.2, ebinalg='LOG', enumbins=10, output_obs_list=onoff_obs_file, output_model=onoff_model_file, log_file=onoff_log_file, prefix=onoff_prefix, stacked=True, force=args.force, save=args.save)
+    phagen = sobs.csphagen_run(d['obs_list'], input_model=args.model, source_rad=0.2, ebinalg="LOG", enumbins=1, output_obs_list=onoff_obs_file, output_model=onoff_model_file, log_file=onoff_log_file, prefix=onoff_prefix, stacked=True, force=args.force, save=args.save)
     phagen_obs_list = phagen.obs()
     if phagen_obs_list.size() == 0:
         logging.error("csphagen doesn't provide an on/off observation list for {}/{}".format(d['tmax'], d['dir']))
@@ -142,9 +171,9 @@ for d in data_to_analyze:
     like_log_file    = os.path.join(d["dir"], "ctlike.log")
     like = sobs.ctlike_run(phagen_obs_list, input_models=phagen_obs_list.models(), output_models=like_models_file, log_file=like_log_file, force=args.force, save=args.save)
     logging.info("maxlike {} done.".format(d["dir"]))
-    logging.debug("Maximum Likelihood:\n", like.opt())
-    logging.debug(like.obs())
-    logging.debug(like.obs().models())
+    logging.debug("Maximum Likelihood:\n"+str(like.opt()))
+    logging.debug("like observation:\n"+str(like.obs()))
+    logging.debug("like models:\n"+str(like.obs().models()))
 
     # summary
     ml_models = like.obs().models()
@@ -177,7 +206,12 @@ for d in data_to_analyze:
                      'off_count': off_count,
                      'alpha': alpha,
                      'excess_count': excess_count,
-                     'li_ma': li_ma(on_count, off_count, alpha), })
+                     'li_ma': li_ma(on_count, off_count, alpha),
+                     'phm_on': photometrics_results['on'],
+                     'phm_off': photometrics_results['off'],
+                     'phm_excess': photometrics_results['excess'],
+                     'phm_li_ma': li_ma(photometrics_results['on'], photometrics_results['off'], photometrics_results['alpha']),
+                     })
 
 try:
 	csvex.save(os.path.join(args.dir, 'results_{}.tsv'.format(str(args.seed))), results, headers=list(results[0].keys()), delimiter="\t")
