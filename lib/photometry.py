@@ -1,6 +1,8 @@
 from astropy.coordinates import SkyCoord, Angle
 from astropy.io import fits
 from lib import utils
+from regions import CircleSkyRegion
+from regions import write_ds9
 import astropy.units as u
 import numpy as np
 import logging
@@ -142,4 +144,17 @@ class Photometrics():
             coord_pos = pointing_center.directional_offset_by(theta, radius)
             regions.append({ 'ra': coord_pos.ra.deg, 'dec': coord_pos.dec.deg, 'rad': region_radius.deg })
         return regions
+
+    @classmethod
+    def write_region(cls, coords, filename, **kwargs):
+        try:
+            iter(coords)
+        except TypeError as te:
+            raise Exception('Coords must be iterable')
+        circles = []
+        for coord in coords:
+            center = utils.get_skycoord(coord)
+            rad = utils.get_angle(coord['rad'])
+            circles.append(CircleSkyRegion(center=center, radius=rad, visual=kwargs))
+        write_ds9(circles, filename)
 
