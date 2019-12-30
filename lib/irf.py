@@ -368,6 +368,33 @@ class PSF:
         crf_psf_fn = lambda delta: psf_value(delta) * 2.0 * np.pi * np.sin(delta)
         return integrate.quad(crf_psf_fn, 0, np.deg2rad(region_radius.degree))
 
+    # WRONG function. it is only a explorative test. Do not use
+    def weighted_eval_region_flux_rate(self, region, pointing, input_energies, e_index=-2.4):
+        """
+        return flux rate in specific source region weighted with a power law
+        """
+        if len(input_energies) != 2:
+            raise Exception('need two energies')
+
+        log_energies = np.log10(input_energies)
+        # N steps for every unit of log energy
+        steps = int(np.ceil(log_energies[1]-log_energies[0]) * 10)
+        energies = 10**np.linspace(log_energies[0], log_energies[1], steps)
+        powerlaw = lambda x: x**e_index
+        i_full = integrate.quad(powerlaw, input_energies[0], input_energies[1])
+        i_partials = [ integrate.quad(powerlaw, energies[i], energies[i+1]) for i,v in enumerate(energies[:-1]) ]
+        i_factor = [ p[0]/i_full[0] for p in i_partials ]
+        energies_middle = (energies[1:]+energies[:-1])/2
+
+        val = 0
+        val_err = 0
+        for i, en in enumerate(energies_middle):
+            res = self.eval_region_flux_rate(region, pointing, en)
+            # print(res, i_factor[i])
+            val += res[0] * i_factor[i]
+            val_err += res[1] * i_factor[i]
+        return (val, val_err)
+
     def get_psf_delta_max(self, offset, energy):
         """
         return max delta value [deg] for theta and energy.
