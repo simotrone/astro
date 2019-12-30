@@ -352,7 +352,7 @@ class PSF:
 
         delta_max = self.get_psf_delta_max(theta, energy)
         if delta_max <= region_radius.degree:
-            return 1.0
+            return (1.0, 0.0)
 
         sigmas2_rad = [ np.deg2rad(s)**2 for s in [sigma_1, sigma_2, sigma_3] ]
         prefactor_rad = 1.0 / (2.0 * np.pi * sigmas2_rad[0] + ampl_2 * sigmas2_rad[1] + ampl_3 * sigmas2_rad[2])
