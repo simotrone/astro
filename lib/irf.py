@@ -1,5 +1,6 @@
-# Copyright 2019-2020, Simone Tampieri
-# mail: simotrone@gmail.com
+# MIT License
+# Copyright (c) 2019,2020 Simone Tampieri
+
 from astropy.io import fits
 import numpy as np
 from scipy import interpolate, integrate

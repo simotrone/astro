@@ -1,3 +1,6 @@
+# MIT License
+# Copyright (c) 2019,2020 Simone Tampieri
+
 from astropy.io import fits
 from defusedxml.ElementTree import parse
 from lib.exporter.csv import CSVExporter as csvex

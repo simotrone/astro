@@ -1,3 +1,6 @@
+# MIT License
+# Copyright (c) 2019,2020 Simone Tampieri
+
 from astropy.coordinates import SkyCoord, Angle
 from astropy.io import fits
 from lib import utils
