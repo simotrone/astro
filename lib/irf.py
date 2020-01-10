@@ -106,12 +106,15 @@ class EffectiveArea:
         energy_fn  = interpolate.interp2d(x = energy_mid, y = theta_mid, z = aeff_matrix)
         return energy_fn(np.log10(input_energy), input_offset)[0]
 
+    def weighted_value_for_region(self, *args):
+        return self.weighted_value_for_region_w_powerlaw(*args)
+
     # this method use an energy range to evaluate the aeff.
     # The energy range is binned and weighted with a powerlaw with index = e_index.
     # Each pixel has a radial weigth and a specific column of energies weight.
     # Lower energies have more weigth than higher.
     # if energy range is small, the effect is trascurable - similar to weighted_value_for_region_single_energy method.
-    def weighted_value_for_region(self, region, pointing, input_energies, pixel_size=0.05, e_index=-2.4):
+    def weighted_value_for_region_w_powerlaw(self, region, pointing, input_energies, pixel_size=0.05, e_index=-2.4):
         """return effective area value [m²] for a specific region
 
         Parameters
@@ -150,7 +153,8 @@ class EffectiveArea:
     # this method use an energy range to evaluate the aeff. The energy range is
     # binned and every matrix cube (pixel distance * energy bin) have the same
     # weight.
-    def weighted_value_for_region_v02(self, region, pointing, input_energies, pixel_size=0.05):
+    # no powerlaw here
+    def weighted_value_for_region_no_powerlaw(self, region, pointing, input_energies, pixel_size=0.05):
         """return effective area value [m²] for a specific region
 
         Parameters
@@ -348,12 +352,12 @@ class PSF:
         region_radius = utils.get_angle(region['rad'])
         pnt_center    = utils.get_skycoord(pointing)
         theta = pnt_center.separation(region_center)
-        sigma_1, sigma_2, sigma_3, scale, ampl_2, ampl_3 = self.get_psf_values(theta, energy)
 
         delta_max = self.get_psf_delta_max(theta, energy)
         if delta_max <= region_radius.degree:
             return (1.0, 0.0)
 
+        sigma_1, sigma_2, sigma_3, scale, ampl_2, ampl_3 = self.get_psf_values(theta, energy)
         sigmas2_rad = [ np.deg2rad(s)**2 for s in [sigma_1, sigma_2, sigma_3] ]
         prefactor_rad = 1.0 / (2.0 * np.pi * sigmas2_rad[0] + ampl_2 * sigmas2_rad[1] + ampl_3 * sigmas2_rad[2])
 
