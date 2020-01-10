@@ -450,6 +450,8 @@ class PSF:
             # typical params:
             #   start_rad = 0
             #   stop_rad = np.deg2rad(region_radius.degree))
+            if start_rad < 0:
+                raise Exception('The starting angle [rad] must be positive')
             def psf_value(delta_rad):
                 d2 = delta_rad**2
                 numerator  = np.exp( -1/2 * d2 / sigmas2_rad[0] )
