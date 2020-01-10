@@ -1,3 +1,5 @@
+# Copyright 2019-2020, Simone Tampieri
+# mail: simotrone@gmail.com
 from astropy.io import fits
 import numpy as np
 from scipy import interpolate, integrate
@@ -108,6 +110,47 @@ class EffectiveArea:
 
     def weighted_value_for_region(self, *args):
         return self.weighted_value_for_region_w_powerlaw(*args)
+
+    # really slow. Need to manage differently the psf.eval_region_flux_rate
+    # method. The problem is in PSF, not here!
+    def weighted_aeff_psf_w_powerlaw(self, region, pointing, input_energies, pixel_size=0.05, e_index=-2.4):
+        """return effective area value [m²] for a specific region
+
+        Parameters
+          region:   { 'ra': ..., 'dec': ..., 'rad': ... }
+          pointing: { 'ra': ..., 'dec': ... }
+          energies: a couple of values in TeV (ex: [ 0.025, 1.0 ])
+          pixel_size: a value in degree (default: 0.05)
+          e_index: is the powerlaw index (default: -2.4)
+        """
+        if len(input_energies) != 2:
+            raise Exception('need two energies')
+
+        psf = PSF(irf_filename=self.irf_filename)
+
+        # create a grid of points
+        points = self.create_pixel_map(region, pixel_size)
+        # select the points inside the region
+        internal_points = self.select_points_in_region(points, region)
+        # calculate the offsets
+        offsets = self.get_thetas(pointing, internal_points)
+
+        log_energies = np.log10(input_energies)
+        # N steps for every unit of log energy
+        steps = int(np.ceil(log_energies[1]-log_energies[0]) * 10)
+        energies = 10**np.linspace(log_energies[0], log_energies[1], steps)
+        powerlaw = lambda x: x**e_index
+        i_full = integrate.quad(powerlaw, input_energies[0], input_energies[1])
+        i_partials = [ integrate.quad(powerlaw, energies[i], energies[i+1]) for i,v in enumerate(energies[:-1]) ]
+        i_factor = [ p[0]/i_full[0] for p in i_partials ]
+        energies_middle = (energies[1:]+energies[:-1])/2
+        n_points = len(offsets)
+        val = 0
+        for t in offsets:
+            for i, en in enumerate(energies_middle):
+                psf_rate = psf.eval_region_flux_rate(region, pointing, en)[0] 
+                val += self.get_aeff_2d_log(t, en) * i_factor[i] * psf_rate / n_points
+        return val
 
     # this method use an energy range to evaluate the aeff.
     # The energy range is binned and weighted with a powerlaw with index = e_index.
@@ -327,9 +370,10 @@ class PSF:
                 self.psf_matrix[f] = data.field(f)[0]
         return self.psf_matrix, self.energies, self.thetas
 
+    # maybe a better name: eval_region_psf_rate() or eval_region_rate()
     def eval_region_flux_rate(self, region, pointing, energy):
         """
-        return flux rate in specific source region
+        return flux rate in specific source region and integral computation error
 
         Parameters
             region: source region (ra, dec, rad)
