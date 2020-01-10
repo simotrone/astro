@@ -109,11 +109,17 @@ class EffectiveArea:
         return energy_fn(np.log10(input_energy), input_offset)[0]
 
     def weighted_value_for_region(self, *args):
-        return self.weighted_value_for_region_w_powerlaw(*args)
+        return self.weighted_aeff_flat_psf_w_powerlaw(*args)
 
-    # really slow. Need to manage differently the psf.eval_region_flux_rate
-    # method. The problem is in PSF, not here!
-    def weighted_aeff_psf_w_powerlaw(self, region, pointing, input_energies, pixel_size=0.05, e_index=-2.4):
+    # FIXME the idea is integrate psf gradually but the offset from center and from pointing works differently
+    # we need to associate the PSF degradation from source region center
+    # and the Aeff degradation form the pointing
+    # def weighted_aeff_psf_w_powerlaw(self, region, pointing, input_energies, pixel_size=0.05, e_index=-2.4):
+    #    ...
+
+    # this method use the psf value plain as it easy for energy weight. doesn't
+    # consider the spatial component of the PSF
+    def weighted_aeff_flat_psf_w_powerlaw(self, region, pointing, input_energies, pixel_size=0.05, e_index=-2.4):
         """return effective area value [m²] for a specific region
 
         Parameters
@@ -144,11 +150,17 @@ class EffectiveArea:
         i_partials = [ integrate.quad(powerlaw, energies[i], energies[i+1]) for i,v in enumerate(energies[:-1]) ]
         i_factor = [ p[0]/i_full[0] for p in i_partials ]
         energies_middle = (energies[1:]+energies[:-1])/2
+
+        psf_engines = {}
+        for en in energies_middle:
+            psf_engines[en] = psf.get_psf_engine(region, pointing, en)
+        region_radius_rad = np.deg2rad(region['rad'])
+
         n_points = len(offsets)
         val = 0
         for t in offsets:
             for i, en in enumerate(energies_middle):
-                psf_rate = psf.eval_region_flux_rate(region, pointing, en)[0] 
+                psf_rate = psf_engines[en](0, region_radius_rad)[0]
                 val += self.get_aeff_2d_log(t, en) * i_factor[i] * psf_rate / n_points
         return val
 
@@ -305,14 +317,14 @@ class EffectiveArea:
         return np.extract(distances < region_radius, midpoints)
 
     @staticmethod
-    def get_thetas(pointing, midpoints):
+    def get_thetas(point, midpoints):
         for k in ['ra', 'dec']:
-            if k in pointing:
+            if k in point:
                 continue
-            raise Exception('pointing coord {} is missing.'.format(k))
+            raise Exception('point coord {} is missing.'.format(k))
         if len(midpoints) < 1:
             raise Exception('need at least 1 point to check')
-        pnt = utils.get_skycoord(pointing)
+        pnt = utils.get_skycoord(point)
         midpoints_ra = []
         midpoints_dec = []
         for p in midpoints:
