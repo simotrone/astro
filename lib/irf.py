@@ -416,6 +416,46 @@ class PSF:
         crf_psf_fn = lambda delta: psf_value(delta) * 2.0 * np.pi * np.sin(delta)
         return integrate.quad(crf_psf_fn, 0, np.deg2rad(region_radius.degree))
 
+    def get_psf_engine(self, region, pointing, energy):
+        """
+        return psf engine. The engine function can elaborate the psf rate given
+        starting and stop angle [rad]. Each engine depends bu theta (between
+        source region and pointing, and energy.
+
+        Parameters
+            region: source region (ra, dec, rad)
+            pointing: pointing direction (ra, dec)
+            energy: energy in TeV
+        """
+        region_center = utils.get_skycoord(region)
+        region_radius = utils.get_angle(region['rad'])
+        pnt_center    = utils.get_skycoord(pointing)
+        theta = pnt_center.separation(region_center)
+
+        # delta_max = self.get_psf_delta_max(theta, energy)
+        # if delta_max <= region_radius.degree:
+        #     return (1.0, 0.0)
+
+        sigma_1, sigma_2, sigma_3, scale, ampl_2, ampl_3 = self.get_psf_values(theta, energy)
+        sigmas2_rad = [ np.deg2rad(s)**2 for s in [sigma_1, sigma_2, sigma_3] ]
+        prefactor_rad = 1.0 / (2.0 * np.pi * sigmas2_rad[0] + ampl_2 * sigmas2_rad[1] + ampl_3 * sigmas2_rad[2])
+
+        def _integrate_psf(start_rad, stop_rad):
+            # typical params:
+            #   start_rad = 0
+            #   stop_rad = np.deg2rad(region_radius.degree))
+            def psf_value(delta_rad):
+                d2 = delta_rad**2
+                numerator  = np.exp( -1/2 * d2 / sigmas2_rad[0] )
+                numerator += np.exp( -1/2 * d2 / sigmas2_rad[1] ) * ampl_2 if sigma_2 > 0 else 0
+                numerator += np.exp( -1/2 * d2 / sigmas2_rad[2] ) * ampl_3 if sigma_3 > 0 else 0
+                return prefactor_rad * numerator
+
+            # integration to start_rad to stop_rad on region circumference of psf value
+            crf_psf_fn = lambda delta: psf_value(delta) * 2.0 * np.pi * np.sin(delta)
+            return integrate.quad(crf_psf_fn, start_rad, stop_rad)
+        return _integrate_psf
+
     def get_psf_delta_max(self, offset, energy):
         """
         return max delta value [deg] for theta and energy.
