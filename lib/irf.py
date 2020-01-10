@@ -432,6 +432,12 @@ class PSF:
         pnt_center    = utils.get_skycoord(pointing)
         theta = pnt_center.separation(region_center)
 
+        # Note: delta_max is not the best things to implement in this context
+        #       'cause the integration distance is variabile and there is no
+        #       "official" source region radius.
+        #       Furthermore, we could implement the delta_max limit in _integrate_psf
+        #       considering as radius the difference between integration params
+        #       and the (eventually) region.radius passed as input.
         # delta_max = self.get_psf_delta_max(theta, energy)
         # if delta_max <= region_radius.degree:
         #     return (1.0, 0.0)
