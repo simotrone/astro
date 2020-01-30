@@ -110,7 +110,14 @@ class Photometrics():
         # Angular separation of reflected regions. 1.05 factor is to have a margin
         region_diameter = 1.05 * 2.0 * region_radius
         radius = pointing_center.separation(region_center)
-        numbers_of_reflected_regions = int(2 * np.pi * radius / region_diameter) # floor down
+        # the numbers_of_reflected regions is the number of center that can stay
+        # on the circumference, NOT the really computated number of regions.
+        # the number is floor down
+        numbers_of_reflected_regions = int(2 * np.pi * radius / region_diameter)
+        # Indeed, we skip the source region and the two near (see below), so we
+        # need at least 4 centers to get one off region.
+        if numbers_of_reflected_regions < 4:
+            raise Exception('the combination of region radius and coordinates does not allow to compute reflected regions.')
         regions_offset_angle = Angle(360, unit='deg') / numbers_of_reflected_regions
 
         regions = []
@@ -136,6 +143,7 @@ class Photometrics():
         -------
         array of regions
         """
+        # FIXME Wobble algorithm has no check about distance and region radius.
         pointing_center = utils.get_skycoord(input_pointing_center)
         region_center = utils.get_skycoord(input_region_center)
         region_radius = utils.get_angle(input_region_radius)
