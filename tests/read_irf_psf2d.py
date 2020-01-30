@@ -22,6 +22,7 @@ if __name__ == '__main__':
     src = { 'ra': 83.6331, 'dec': 22.0145, 'rad': 0.2 }
     pnt = { 'ra': 83.6331, 'dec': 22.5145 }
     energies = [0.025, 0.050, 0.100, 0.200, 1.0, 100, 150]
+    # energies = [0.025, 0.030, 0.040, 0.050, 0.060, 0.070, 0.080, 0.090, 0.100, 0.150, 0.200, 0.250, 0.300, 0.350, 1.0, 100, 150]
 
     for energy in energies:
         flux_rate = psf.eval_region_flux_rate(src, pnt, energy)
