@@ -1,8 +1,10 @@
+# MIT License
+# Copyright (c) 2019,2020 Simone Tampieri
+
 import csv
 import math
 from astropy.coordinates import SkyCoord, Angle
 
-# verified with https://docs.gammapy.org/0.8/stats/index.html#li-ma-significance
 def li_ma (n_on, n_off, alpha):
     if n_on <= 0 or n_off <= 0 or alpha == 0:
         return None
