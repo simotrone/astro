@@ -432,7 +432,7 @@ class PSF:
     def get_psf_engine(self, region, pointing, energy):
         """
         return psf engine. The engine function can elaborate the psf rate given
-        starting and stop angle [rad]. Each engine depends bu theta (between
+        starting and stop angle [rad]. Each engine depends by theta (between
         source region and pointing, and energy.
 
         Parameters

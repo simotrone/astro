@@ -1,4 +1,4 @@
-from lib.irf_aeff import EffectiveArea
+from lib.irf import EffectiveArea
 from lib import utils
 from astropy.coordinates import SkyCoord
 import sys
