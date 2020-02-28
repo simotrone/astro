@@ -70,7 +70,7 @@ class Photometrics():
         hdul.close()
         return data
 
-    def region_counter(self, input_center, input_radius, emin=None, emax=None):
+    def region_counter(self, input_center, input_radius, emin=None, emax=None, tmin=None, tmax=None):
         """Counts photons in an input area"""
         region_center = utils.get_skycoord(input_center)
         region_radius = utils.get_angle(input_radius)
@@ -82,6 +82,12 @@ class Photometrics():
             condlist &= self.events_data.field('ENERGY') >= emin
         if emax is not None:
             condlist &= self.events_data.field('ENERGY') <= emax
+        # FIXME: TIME needs a better implementation
+        # atm it consider users that knows the time format in the input fits
+        if tmin is not None:
+            condlist &= self.events_data.field('TIME') >= tmin
+        if tmax is not None:
+            condlist &= self.events_data.field('TIME') <= tmax
 
         events_list = np.extract(condlist, self.events_data)
         # events coordinates from the selected events list
