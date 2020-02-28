@@ -130,7 +130,11 @@ class Photometrics():
         return regions
 
     @classmethod
-    def wobble_regions(cls, input_pointing_center, input_region_center, input_region_radius):
+    def wobble_regions(cls, *args):
+        return cls.cross_regions(*args)
+
+    @classmethod
+    def cross_regions(cls, input_pointing_center, input_region_center, input_region_radius):
         """Return the three background regions starting from pointing and source one.
 
         Parameters

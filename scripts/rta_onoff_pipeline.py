@@ -5,7 +5,7 @@ from lib.irf import EffectiveArea
 import numpy as np
 
 # Example:
-# python rta_onoff_pipeline.py -v -irf test_00_crab/irf_prod3b_v2_South_z20_0.5h.fits -events test_00_crab/events.fits -src-ra 83.6331 -src-dec 22.0145 -pnt-ra 84.1331 -pnt-dec 22.0145 -rad 0.2 -bkgmethod wobble --save-off-regions test_00_crab/reflection_off.reg --livetime 1200 -emin 0.025 -emax 150.0 --power-law-index -2.48
+# python rta_onoff_pipeline.py -v -irf test_00_crab/irf_prod3b_v2_South_z20_0.5h.fits -events test_00_crab/events.fits -src-ra 83.6331 -src-dec 22.0145 -pnt-ra 84.1331 -pnt-dec 22.0145 -rad 0.2 -bkgmethod cross --save-off-regions test_00_crab/reflection_off.reg --livetime 1200 -emin 0.025 -emax 150.0 --power-law-index -2.48
 
 def counting(phm, src, rad, off_regions, verbose=False):
     on_count = phm.region_counter(src, rad)
@@ -28,14 +28,14 @@ def counting(phm, src, rad, off_regions, verbose=False):
 
 def find_off_regions(phm, algo, src, pnt, rad, verbose=False, save=None):
     off_regions = None
-    if algo == 'wobble':
-        off_regions = phm.wobble_regions(pnt, src, rad)
+    if algo == 'cross':
+        off_regions = phm.cross_regions(pnt, src, rad)
     elif algo == 'reflection':
         off_regions = phm.reflected_regions(pnt, src, rad)
     else:
         raise Exception('invalid background regions algorithm')
 
-    if verbose:
+    if verbose > 1:
         print('off regions algorithm:', algo)
         for i, o in enumerate(off_regions):
             print('      off regions #{:02d}:'.format(i), o)
@@ -76,7 +76,7 @@ def main(opts):
     livetime = opts.livetime
     flux = excess / source_reg_aeff / livetime
     if opts.verbose:
-        print('  effective area: {:.3e} cm²'.format(source_reg_aeff))
+        print(' eff. resp. area: {:.3e} cm²'.format(source_reg_aeff))
         print('        livetime:', livetime)
         print('            flux: {:.3e} ph/cm²/s'.format(flux))
 
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     parser.add_argument('-pnt-ra', '--pointing-ra', help='the pointing right ascension', type=float)
     parser.add_argument('-pnt-dec', '--pointing-dec', help='the pointing declination', type=float)
     parser.add_argument('-rad', '--region-radius', help='the region radius (default: 0.2°)', default=0.2, type=float)
-    parser.add_argument('-bkgmethod', '--background-method', help='choose background regions algorithm. Currently implemented: wobble, reflection. (default: wobble)', default='wobble')
+    parser.add_argument('-bkgmethod', '--background-method', help='choose background regions algorithm. Currently implemented: cross, reflection. (default: cross)', default='cross')
     parser.add_argument('-save-off', '--save-off-regions', help='save off regions in .reg file')
     # aeff options
     parser.add_argument('-emin', '--energy-min', help='the low energy boundary to eval the aeff', type=float)
