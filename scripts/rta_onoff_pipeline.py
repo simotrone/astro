@@ -3,30 +3,34 @@ from lib.utils import li_ma
 from lib.photometry import Photometrics
 from lib.irf import EffectiveArea
 import numpy as np
+import math
 
 # Example:
 # python rta_onoff_pipeline.py -v -irf test_00_crab/irf_prod3b_v2_South_z20_0.5h.fits -events test_00_crab/events.fits -src-ra 83.6331 -src-dec 22.0145 -pnt-ra 84.1331 -pnt-dec 22.0145 -rad 0.2 -bkgmethod cross --save-off-regions test_00_crab/reflection_off.reg --livetime 1200 -emin 0.025 -emax 150.0 --power-law-index -2.48
 
-def counting(phm, src, rad, off_regions, verbose=False):
-    on_count = phm.region_counter(src, rad)
+def counting(phm, src, rad, off_regions, e_min=None, e_max=None, t_min=None, t_max=None, draconian=False):
+    on_count = phm.region_counter(src, rad, emin=e_min, emax=e_max, tmin=t_min, tmax=t_max)
     off_count = 0
     for r in off_regions:
-        off_count += phm.region_counter(r, r['rad'])
+        off_count += phm.region_counter(r, r['rad'], emin=e_min, emax=e_max, tmin=t_min, tmax=t_max)
 
     alpha = 1 / len(off_regions)
     excess = on_count - alpha * off_count
     signif = li_ma(on_count, off_count, alpha)
 
-    if verbose:
-        print('counting for src:', src)
-        print('        on count:', on_count)
-        print('       off count:', off_count)
-        print('           alpha: {:.3f}'.format(alpha))
-        print('          excess: {:.2f}'.format(excess))
-        print('    significance: {:.2f}'.format(signif))
-    return on_count, off_count, alpha, excess, signif
+    # !!! here we can implement checks
+    err_note = None
+    if on_count < 10 or off_count < 10:
+        err_note = 'Not compliant with Li & Ma requirements.'
+        if draconian:
+            raise Exception(err_note)
+
+    return on_count, off_count, alpha, excess, signif, err_note
 
 def find_off_regions(phm, algo, src, pnt, rad, verbose=False, save=None):
+    if not (src['ra'] and src['dec'] and pnt['ra'] and pnt['dec'] and src['rad']):
+        raise Exception('need source and pointing coordinates and a region radius to do aperture photometry')
+
     off_regions = None
     if algo == 'cross':
         off_regions = phm.cross_regions(pnt, src, rad)
@@ -45,13 +49,58 @@ def find_off_regions(phm, algo, src, pnt, rad, verbose=False, save=None):
 
     return off_regions
 
-def main(opts):
-    aeff = EffectiveArea(irf_filename=opts.irf_file)
+def aeff_eval(args, src, pnt):
+    if not(args.energy_min and args.energy_max and args.pixel_size and args.power_law_index):
+        raise Exception('need energy min and max, a pixel size to eval the flux')
+
+    aeff = EffectiveArea(irf_filename=args.irf_file)
+    # these IRFs return value in m², so we need convert
+    # the source data struct need a 'rad'
+    source_reg_aeff = aeff.weighted_value_for_region(src, pnt, [args.energy_min, args.energy_max], args.pixel_size, args.power_law_index) * 1e4 # cm2
+    return source_reg_aeff
+
+def main_simple(opts):
     phm = Photometrics({ 'events_filename': opts.events_file })
 
-    # regions
-    if not (opts.source_ra and opts.source_dec and opts.pointing_ra and opts.pointing_dec and opts.region_radius):
-        raise Exception('need source and pointing coordinates and a region radius to do aperture photometry')
+    src = { 'ra': opts.source_ra,   'dec': opts.source_dec,  'rad': opts.region_radius }
+    pnt = { 'ra': opts.pointing_ra, 'dec': opts.pointing_dec }
+    radius = opts.region_radius
+    livetime = opts.end_time - opts.begin_time
+
+    off_regions = find_off_regions(phm, opts.background_method, src, pnt, radius, verbose=opts.verbose, save=opts.save_off_regions)
+
+    # counting
+    on_count, off_count, alpha, excess, significance, err_note = counting(phm, src, radius, off_regions, e_min=opts.energy_min, e_max=opts.energy_max, t_min=opts.begin_time, t_max=opts.end_time, draconian=True)
+
+    flux = None
+    if opts.power_law_index:
+        region_eff_resp = aeff_eval(opts, src, pnt)
+        flux = excess / region_eff_resp / livetime
+
+    ########
+    # output
+    header=False
+    if opts.verbose:
+        fmt = '{ra:8.4f} {dec:8.4f} {rad:5.2f} {on:10.1f} {off:10.1f} {alpha:6.3f} {exc:10.2f} {sign:7.2f}'
+        output_string = fmt.format(ra=src['ra'], dec=src['dec'], rad=src['rad'], on=on_count, off=off_count, alpha=alpha, exc=excess, sign=significance)
+
+        if not header:
+            header_fmt = '{:>8s} {:>8s} {:>5s} {:>10s} {:>10s} {:>6s} {:>10s} {:>7s}'
+            header_string = header_fmt.format('src-ra', 'src-dec', 'rad', 'on', 'off', 'alpha', 'excess', 'S')
+
+        if flux:
+            header_string += ' '+'{:>15s} {:>17s}'.format('flux ph/cm²/s', 'eff.resp cm²')
+            flux_fmt = '{flux:15.3e} {aeff:17.3e}'
+            output_string += ' '+flux_fmt.format(flux=flux, aeff=region_eff_resp)
+
+        if not header:
+            print(header_string)
+            header=True
+
+        print(output_string)
+
+def main_with_time_intervals(opts):
+    phm = Photometrics({ 'events_filename': opts.events_file })
 
     src = { 'ra': opts.source_ra,   'dec': opts.source_dec,  'rad': opts.region_radius }
     pnt = { 'ra': opts.pointing_ra, 'dec': opts.pointing_dec }
@@ -59,26 +108,64 @@ def main(opts):
 
     off_regions = find_off_regions(phm, opts.background_method, src, pnt, radius, verbose=opts.verbose, save=opts.save_off_regions)
 
-    # counting
-    on_count, off_count, alpha, excess, significance = counting(phm, src, radius, off_regions, verbose=opts.verbose)
+    # useful to compute the flux. slow exec
+    flux = float('NaN')
+    region_eff_resp = float('NaN')
+    if opts.power_law_index:
+        region_eff_resp = aeff_eval(opts, src, pnt)
 
-    # !!! here we can implement checks
-    if on_count < 10 or off_count < 10:
-        raise Exception('Not compliant with Li & Ma requirements.')
+    # results go in output array
+    output = []
 
-    # flux
-    if not(opts.energy_min and opts.energy_max and opts.pixel_size and opts.livetime and opts.power_law_index):
-        raise Exception('need energy min and max, a pixel size and livetime to eval the flux')
+    # counter helper
+    def counter_fn(t_begin, t_end):
+            on_count, off_count, alpha, excess, significance, err_note = counting(phm, src, radius, off_regions, e_min=opts.energy_min, e_max=opts.energy_max, t_min=t_begin, t_max=t_end, draconian=False)
 
-    # these IRFs return value in m², so we need convert
-    # the source data struct need a 'rad'
-    source_reg_aeff = aeff.weighted_value_for_region(src, pnt, [opts.energy_min, opts.energy_max], opts.pixel_size, opts.power_law_index) * 1e4 # cm2
-    livetime = opts.livetime
-    flux = excess / source_reg_aeff / livetime
-    if opts.verbose:
-        print(' eff. resp. area: {:.3e} cm²'.format(source_reg_aeff))
-        print('        livetime:', livetime)
-        print('            flux: {:.3e} ph/cm²/s'.format(flux))
+            livetime = t_end - t_begin
+            if not math.isnan(region_eff_resp):
+                flux = excess / region_eff_resp / livetime
+
+            output.append({ 'on': on_count, 'off': off_count, 'alpha': alpha, 'exc': excess, 'sign': significance, 'err_note': err_note, 'flux': flux, 'aeff': region_eff_resp, 'tmin': t_begin, 'tmax': t_end, 'livetime': livetime })
+
+    if opts.step_time:
+        if opts.step_time < 1:
+            raise Exception('Step time need to be > 0 sec')
+        # stepped counts
+        tstart = opts.begin_time
+        while(tstart < opts.end_time):
+            tstop = tstart + opts.step_time
+            if tstop > opts.end_time:
+                tstop = opts.end_time
+            counter_fn(tstart, tstop)
+            tstart = tstop
+    else:
+        # full counts
+        counter_fn(opts.begin_time, opts.end_time)
+
+    print_results(output, src)
+
+########
+# output
+def print_results(data, src):
+    header=False
+    for d in data:
+        fmt = '{ra:8.4f} {dec:8.4f} {rad:5.2f} {tmin:4.0f}-{tmax:4.0f} {on:10.1f} {off:10.1f} {alpha:6.3f} {exc:10.2f} {sign:7.2f}'
+        output_string = fmt.format(ra=src['ra'], dec=src['dec'], rad=src['rad'], **d)
+
+        if not header:
+            header_fmt = '{:>8s} {:>8s} {:>5s} {:>9s} {:>10s} {:>10s} {:>6s} {:>10s} {:>7s}'
+            header_string = header_fmt.format('src-ra', 'src-dec', 'rad', 'time sec', 'on', 'off', 'alpha', 'excess', 'S')
+
+        if not math.isnan(d['flux']):
+            header_string += ' '+'{:>15s} {:>17s} {:>8s}'.format('flux ph/cm²/s', 'eff.resp cm²', 'livetime')
+            flux_fmt = '{flux:15.3e} {aeff:17.3e} {livetime:8.1f}'
+            output_string += ' '+flux_fmt.format(**d)
+
+        if not header:
+            print(header_string)
+            header=True
+
+        print(output_string)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="on off analysis from an event list")
@@ -98,8 +185,10 @@ if __name__ == '__main__':
     parser.add_argument('-emin', '--energy-min', help='the low energy boundary to eval the aeff', type=float)
     parser.add_argument('-emax', '--energy-max', help='the high energy boundary to eval the aeff', type=float)
     parser.add_argument('-psize', '--pixel-size', help="the pixel size to count the Aeff", type=float, default=0.05)
-    parser.add_argument('-t', '--livetime', help="the observation duration", type=float)
-    parser.add_argument('-index', '--power-law-index', help="power law index for aeff calculation", type=float, default=-2.40)
+    parser.add_argument('-tbegin', '--begin-time', help="the observation starting time", type=float, default=0)
+    parser.add_argument('-tend',   '--end-time', help="the observation ending duration", type=float)
+    parser.add_argument('-tstep',  '--step-time', help="the time interval to split the full observation duration", type=float, default=None)
+    parser.add_argument('-index', '--power-law-index', help="power law index for aeff calculation", type=float, default=None)
 
     args = None
     parser_args = parser.parse_args()
@@ -109,5 +198,6 @@ if __name__ == '__main__':
     else:
         args = parser_args
 
-    main(args)
+    # main_simple(args)
+    main_with_time_intervals(args)
 
