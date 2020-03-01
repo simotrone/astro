@@ -67,11 +67,67 @@ def with_text():
     plt.grid(True)
     plt.show()
 
+def power_law(x, k_0, g, E_0):
+    return k_0 * ( x / E_0 )**g
+
+def plot_cosmic_rays():
+
+    pivot_energy = 1e9 # GeV
+    en = np.linspace(1e8,1e20) # 0.1 GeV (9) -> TeV (12) -> PeV (15) -> 100 EeV (18) 
+    if False: # wiebel-sooth (1998)
+        prefactor = 3.01
+        gamma = -2.68
+        plt.plot(en, power_law(en, prefactor, gamma, pivot_energy), label='wiebel-sooth')
+
+    if False: # horandel (2003)
+        prefactor = 2.16
+        gamma = -2.66
+        plt.plot(en, power_law(en, prefactor, gamma, pivot_energy), label='horandel')
+
+    if False: # beringer (2012)
+        prefactor = 1.8
+        gamma = -2.7
+        plt.plot(en, power_law(en, prefactor, gamma, pivot_energy), label='beringer')
+
+    # knee, ankle
+    x = [
+        np.linspace(1e8, 0.5e16),
+        np.linspace(0.5e16, 1e17),
+        np.linspace(1e17, 0.5e19),
+        np.linspace(0.5e19, 1e20),
+    ]
+    pivots = [ 1e9, 0.73e10, 1.2e10, 0.46e8 ]
+    gammas = [ -2.7, -3.1, -3.2, -2.5]
+    if False: # clean plot
+        for i, g in enumerate(gammas):
+            plt.plot(x[i], power_law(x[i], 3.01, g, pivots[i]))
+
+    if True:
+        for i, g in enumerate(gammas):
+            plt.plot(x[i], power_law(x[i], 3.01, g, pivots[i])*x[i]**2.6)
+
+    plt.xlabel('Energy (eV)')
+    plt.ylabel('')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.grid()
+    plt.legend()
+    plt.show()
+
+    
+
 if __name__ == "__main__":
-    simple()
-    triple()
-    named_data()
-    subplot()
-    with_text()
+    # simple()
+    # triple()
+    # named_data()
+    # subplot()
+    # with_text()
+
+    # prefactor = 5.7e-16
+    # gamma = -2.48
+    # pivot_energy = 0.3e6
+
+    # cosmic rays:
+    plot_cosmic_rays()
     
     exit(0)
