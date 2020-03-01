@@ -5,7 +5,9 @@ from lib.exporter.timeslice import TimeSliceExporter
 from lib.exporter.csv import CSVExporter as csvex
 import logging
 
-# python export_run.py run0406_ID000126.fits run0406_ID000126.xml -v --save data/timeslices.tsv --dir data
+# export template data
+# python export_run.py run0406_ID000126_ebl.fits run0406_ID000126.xml --dir data --save data/timeslices.tsv --verbose --ebl
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Create an obeservations list from a spectra fits")
     parser.add_argument("input_fits",     help="the fits file with times/energies/spectra data")
