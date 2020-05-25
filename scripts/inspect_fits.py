@@ -1,5 +1,4 @@
 import argparse
-import sys
 from astropy.io import fits
 
 def show_header_cards(hdu):
@@ -34,7 +33,7 @@ def show_data(hdu):
         print('HDU Data: -')
         return
 
-    print(hdu.data)
+    # print(hdu.data)
     # hdu.data.names == hdu.columns.names
     aggr = { 'min': [], 'max': [], 'mean': [] }
     fmt_s = '{:>10s}: '
