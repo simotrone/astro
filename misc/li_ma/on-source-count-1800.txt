@@ -1,0 +1,13 @@
+center=83.6331 22.0145
+fk5
+1 pixel = 59.999976 arcsec
+
+reg	sum		error	area		surf_bri		surf_err
+				(arcsec**2)		(sum/arcsec**2)	(sum/arcsec**2)
+---	---		-----	-----------		---------------	---------------
+1	13814		117.533	2.5776e+06		0.00535925		4.55979e-05
+
+reg	sum	npix	mean	median	min	max	var	stddev	rms	
+---	---	----	----	------	---	---	---	------	---	
+1	13814	716	19.2933	12	1	120	369.012	19.2097	27.2258	
+
