@@ -1,0 +1,189 @@
+2020-05-24T16:25:11: ********************************************************************************
+2020-05-24T16:25:11: *                                   ctobssim                                   *
+2020-05-24T16:25:11: * ---------------------------------------------------------------------------- *
+2020-05-24T16:25:11: * Version: 1.6.3                                                               *
+2020-05-24T16:25:11: ********************************************************************************
+2020-05-24T16:25:30: +============+
+2020-05-24T16:25:30: | Parameters |
+2020-05-24T16:25:30: +============+
+2020-05-24T16:25:30:  inobs .....................: NONE
+2020-05-24T16:25:30:  inmodel ...................: crab.xml
+2020-05-24T16:25:30:  caldb .....................: prod3b-v2
+2020-05-24T16:25:30:  irf .......................: South_z20_0.5h
+2020-05-24T16:25:30:  edisp .....................: no
+2020-05-24T16:25:30:  outevents .................: events.fits
+2020-05-24T16:25:30:  prefix ....................: sim_events_
+2020-05-24T16:25:30:  startindex ................: 1
+2020-05-24T16:25:30:  seed ......................: 1
+2020-05-24T16:25:30:  ra ........................: 83.6331
+2020-05-24T16:25:30:  dec .......................: 22.0145
+2020-05-24T16:25:30:  rad .......................: 5.0
+2020-05-24T16:25:30:  tmin ......................: 2020-05-23T22:00:00
+2020-05-24T16:25:30:  tmax ......................: 2020-05-23T22:00:10
+2020-05-24T16:25:30:  mjdref ....................: 51544.5
+2020-05-24T16:25:30:  emin ......................: 0.03
+2020-05-24T16:25:30:  emax ......................: 150.0
+2020-05-24T16:25:30:  deadc .....................: 0.98
+2020-05-24T16:25:30:  maxrate ...................: 1.0e6
+2020-05-24T16:25:30:  eslices ...................: 10
+2020-05-24T16:25:30:  nthreads ..................: 0
+2020-05-24T16:25:30:  publish ...................: no
+2020-05-24T16:25:30:  chatter ...................: 2
+2020-05-24T16:25:30:  clobber ...................: yes
+2020-05-24T16:25:30:  debug .....................: no
+2020-05-24T16:25:30:  mode ......................: ql
+2020-05-24T16:25:30:  logfile ...................: ctobssim.log
+2020-05-24T16:25:30: 
+2020-05-24T16:25:30: WARNING: Energy dispersion will *NOT* be considered for the computation. To consider
+2020-05-24T16:25:30:          energy dispersion, please set the "edisp" parameter to "yes". Be aware that
+2020-05-24T16:25:30:          using energy dispersion will considerably slow down the computations.
+2020-05-24T16:25:30: 
+2020-05-24T16:25:30: +================+
+2020-05-24T16:25:30: | Execution mode |
+2020-05-24T16:25:30: +================+
+2020-05-24T16:25:30:  Event list management .....: Save and dispose (reduces memory needs)
+2020-05-24T16:25:30:  Output format .............: Write single event list FITS file
+2020-05-24T16:25:30: 
+2020-05-24T16:25:30: +=============+
+2020-05-24T16:25:30: | Seed values |
+2020-05-24T16:25:30: +=============+
+2020-05-24T16:25:30:  Seed 0 ....................: 9717486569
+2020-05-24T16:25:30: 
+2020-05-24T16:25:30: +===================+
+2020-05-24T16:25:30: | Input observation |
+2020-05-24T16:25:30: +===================+
+2020-05-24T16:25:30: === GObservations ===
+2020-05-24T16:25:30:  Number of observations ....: 1
+2020-05-24T16:25:30:  Number of models ..........: 2
+2020-05-24T16:25:30:  Number of observed events .: 0
+2020-05-24T16:25:30:  Number of predicted events : 0
+2020-05-24T16:25:30: 
+2020-05-24T16:25:30: +======================+
+2020-05-24T16:25:30: | Simulate observation |
+2020-05-24T16:25:30: +======================+
+2020-05-24T16:25:30: === CTA observation ===
+2020-05-24T16:25:30:  Simulation cone ...........: RA=83.6331 deg, Dec=22.0145 deg, radius=5.5 deg
+2020-05-24T16:25:30:  Time interval .............: 6.43543e+08 - 6.43543e+08 s
+2020-05-24T16:25:30:  Photon energy range .......: 30 GeV - 70.310187347763 GeV
+2020-05-24T16:25:30:  Event energy range ........: 30 GeV - 70.310187347763 GeV
+2020-05-24T16:25:30:   Simulation area ..........: 3.21783e+09 cm2
+2020-05-24T16:25:30:   Use model ................: Crab
+2020-05-24T16:25:30:   Normalization ............: 1 [Crab]
+2020-05-24T16:25:30:   Flux .....................: 2.50006e-09 [Crab] photons/cm2/s
+2020-05-24T16:25:30:   Normalized flux ..........: 2.50006e-09 [Crab] photons/cm2/s
+2020-05-24T16:25:30:   Photon rate ..............: 8.04479 photons/s [Crab]
+2020-05-24T16:25:30:   MC source photons ........: 82 [Crab]
+2020-05-24T16:25:30:   MC source events .........: 19 [Crab]
+2020-05-24T16:25:30:   MC source events .........: 19 (all source models)
+2020-05-24T16:25:30:  Photon energy range .......: 70.310187347763 GeV - 164.784081495918 GeV
+2020-05-24T16:25:30:  Event energy range ........: 70.310187347763 GeV - 164.784081495918 GeV
+2020-05-24T16:25:30:   Simulation area ..........: 9.04273e+09 cm2
+2020-05-24T16:25:30:   Use model ................: Crab
+2020-05-24T16:25:30:   Normalization ............: 1 [Crab]
+2020-05-24T16:25:30:   Flux .....................: 7.08767e-10 [Crab] photons/cm2/s
+2020-05-24T16:25:30:   Normalized flux ..........: 7.08767e-10 [Crab] photons/cm2/s
+2020-05-24T16:25:30:   Photon rate ..............: 6.40919 photons/s [Crab]
+2020-05-24T16:25:30:   MC source photons ........: 64 [Crab]
+2020-05-24T16:25:30:   MC source events .........: 18 [Crab]
+2020-05-24T16:25:30:   MC source events .........: 18 (all source models)
+2020-05-24T16:25:30:  Photon energy range .......: 164.784081495918 GeV - 386.199988063567 GeV
+2020-05-24T16:25:30:  Event energy range ........: 164.784081495918 GeV - 386.199988063567 GeV
+2020-05-24T16:25:30:   Simulation area ..........: 1.50666e+10 cm2
+2020-05-24T16:25:30:   Use model ................: Crab
+2020-05-24T16:25:30:   Normalization ............: 1 [Crab]
+2020-05-24T16:25:30:   Flux .....................: 2.00935e-10 [Crab] photons/cm2/s
+2020-05-24T16:25:30:   Normalized flux ..........: 2.00935e-10 [Crab] photons/cm2/s
+2020-05-24T16:25:30:   Photon rate ..............: 3.02741 photons/s [Crab]
+2020-05-24T16:25:30:   MC source photons ........: 24 [Crab]
+2020-05-24T16:25:30:   MC source events .........: 7 [Crab]
+2020-05-24T16:25:30:   MC source events .........: 7 (all source models)
+2020-05-24T16:25:30:  Photon energy range .......: 386.199988063567 GeV - 905.126450481775 GeV
+2020-05-24T16:25:30:  Event energy range ........: 386.199988063567 GeV - 905.126450481775 GeV
+2020-05-24T16:25:30:   Simulation area ..........: 3.10833e+10 cm2
+2020-05-24T16:25:30:   Use model ................: Crab
+2020-05-24T16:25:30:   Normalization ............: 1 [Crab]
+2020-05-24T16:25:30:   Flux .....................: 5.6965e-11 [Crab] photons/cm2/s
+2020-05-24T16:25:30:   Normalized flux ..........: 5.6965e-11 [Crab] photons/cm2/s
+2020-05-24T16:25:30:   Photon rate ..............: 1.77066 photons/s [Crab]
+2020-05-24T16:25:30:   MC source photons ........: 15 [Crab]
+2020-05-24T16:25:30:   MC source events .........: 4 [Crab]
+2020-05-24T16:25:30:   MC source events .........: 4 (all source models)
+2020-05-24T16:25:30:  Photon energy range .......: 905.126450481775 GeV - 2.12132034355964 TeV
+2020-05-24T16:25:30:  Event energy range ........: 905.126450481775 GeV - 2.12132034355964 TeV
+2020-05-24T16:25:30:   Simulation area ..........: 6.69952e+10 cm2
+2020-05-24T16:25:30:   Use model ................: Crab
+2020-05-24T16:25:30:   Normalization ............: 1 [Crab]
+2020-05-24T16:25:30:   Flux .....................: 1.61496e-11 [Crab] photons/cm2/s
+2020-05-24T16:25:30:   Normalized flux ..........: 1.61496e-11 [Crab] photons/cm2/s
+2020-05-24T16:25:30:   Photon rate ..............: 1.08194 photons/s [Crab]
+2020-05-24T16:25:30:   MC source photons ........: 11 [Crab]
+2020-05-24T16:25:30:   MC source events .........: 3 [Crab]
+2020-05-24T16:25:30:   MC source events .........: 3 (all source models)
+2020-05-24T16:25:30:  Photon energy range .......: 2.12132034355964 TeV - 4.97168102600998 TeV
+2020-05-24T16:25:30:  Event energy range ........: 2.12132034355964 TeV - 4.97168102600998 TeV
+2020-05-24T16:25:30:   Simulation area ..........: 8.59761e+10 cm2
+2020-05-24T16:25:30:   Use model ................: Crab
+2020-05-24T16:25:30:   Normalization ............: 1 [Crab]
+2020-05-24T16:25:30:   Flux .....................: 4.57839e-12 [Crab] photons/cm2/s
+2020-05-24T16:25:30:   Normalized flux ..........: 4.57839e-12 [Crab] photons/cm2/s
+2020-05-24T16:25:30:   Photon rate ..............: 0.393632 photons/s [Crab]
+2020-05-24T16:25:30:   MC source photons ........: 3 [Crab]
+2020-05-24T16:25:30:   MC source events .........: 2 [Crab]
+2020-05-24T16:25:30:   MC source events .........: 2 (all source models)
+2020-05-24T16:25:30:  Photon energy range .......: 4.97168102600998 TeV - 11.651994145736 TeV
+2020-05-24T16:25:30:  Event energy range ........: 4.97168102600998 TeV - 11.651994145736 TeV
+2020-05-24T16:25:30:   Simulation area ..........: 1.01774e+11 cm2
+2020-05-24T16:25:30:   Use model ................: Crab
+2020-05-24T16:25:30:   Normalization ............: 1 [Crab]
+2020-05-24T16:25:30:   Flux .....................: 1.29797e-12 [Crab] photons/cm2/s
+2020-05-24T16:25:30:   Normalized flux ..........: 1.29797e-12 [Crab] photons/cm2/s
+2020-05-24T16:25:30:   Photon rate ..............: 0.1321 photons/s [Crab]
+2020-05-24T16:25:30:   MC source photons ........: 1 [Crab]
+2020-05-24T16:25:30:   MC source events .........: 1 [Crab]
+2020-05-24T16:25:30:   MC source events .........: 1 (all source models)
+2020-05-24T16:25:30:  Photon energy range .......: 11.651994145736 TeV - 27.3084630453912 TeV
+2020-05-24T16:25:30:  Event energy range ........: 11.651994145736 TeV - 27.3084630453912 TeV
+2020-05-24T16:25:30:   Simulation area ..........: 1.4269e+11 cm2
+2020-05-24T16:25:30:   Use model ................: Crab
+2020-05-24T16:25:30:   Normalization ............: 1 [Crab]
+2020-05-24T16:25:30:   Flux .....................: 3.67975e-13 [Crab] photons/cm2/s
+2020-05-24T16:25:30:   Normalized flux ..........: 3.67975e-13 [Crab] photons/cm2/s
+2020-05-24T16:25:30:   Photon rate ..............: 0.0525065 photons/s [Crab]
+2020-05-24T16:25:30:   MC source photons ........: 0 [Crab]
+2020-05-24T16:25:30:   MC source events .........: 0 [Crab]
+2020-05-24T16:25:30:   MC source events .........: 0 (all source models)
+2020-05-24T16:25:30:  Photon energy range .......: 27.3084630453912 TeV - 64.0021050966973 TeV
+2020-05-24T16:25:30:  Event energy range ........: 27.3084630453912 TeV - 64.0021050966973 TeV
+2020-05-24T16:25:30:   Simulation area ..........: 1.44719e+11 cm2
+2020-05-24T16:25:30:   Use model ................: Crab
+2020-05-24T16:25:30:   Normalization ............: 1 [Crab]
+2020-05-24T16:25:30:   Flux .....................: 1.04321e-13 [Crab] photons/cm2/s
+2020-05-24T16:25:30:   Normalized flux ..........: 1.04321e-13 [Crab] photons/cm2/s
+2020-05-24T16:25:30:   Photon rate ..............: 0.0150972 photons/s [Crab]
+2020-05-24T16:25:30:   MC source photons ........: 0 [Crab]
+2020-05-24T16:25:30:   MC source events .........: 0 [Crab]
+2020-05-24T16:25:30:   MC source events .........: 0 (all source models)
+2020-05-24T16:25:30:  Photon energy range .......: 64.0021050966973 TeV - 150 TeV
+2020-05-24T16:25:30:  Event energy range ........: 64.0021050966973 TeV - 150 TeV
+2020-05-24T16:25:30:   Simulation area ..........: 1.42405e+11 cm2
+2020-05-24T16:25:30:   Use model ................: Crab
+2020-05-24T16:25:30:   Normalization ............: 1 [Crab]
+2020-05-24T16:25:30:   Flux .....................: 2.95749e-14 [Crab] photons/cm2/s
+2020-05-24T16:25:30:   Normalized flux ..........: 2.95749e-14 [Crab] photons/cm2/s
+2020-05-24T16:25:30:   Photon rate ..............: 0.00421162 photons/s [Crab]
+2020-05-24T16:25:30:   MC source photons ........: 0 [Crab]
+2020-05-24T16:25:30:   MC source events .........: 0 [Crab]
+2020-05-24T16:25:30:   MC source events .........: 0 (all source models)
+2020-05-24T16:25:30:  MC source photons .........: 200 [Crab]
+2020-05-24T16:25:30:  MC source events ..........: 54 [Crab]
+2020-05-24T16:25:31:  MC events outside ROI .....: 0
+2020-05-24T16:25:31:  MC background events ......: 2210
+2020-05-24T16:25:31:  MC identifier 1 ...........: Crab
+2020-05-24T16:25:31:  MC identifier 2 ...........: CTABackgroundModel
+2020-05-24T16:25:31:  MC events .................: 2264 (all models)
+2020-05-24T16:25:31: 
+2020-05-24T16:25:31: +==================+
+2020-05-24T16:25:31: | Save observation |
+2020-05-24T16:25:31: +==================+
+2020-05-24T16:25:31: 
+2020-05-24T16:25:31: Application "ctobssim" terminated after 20 wall clock seconds, consuming 1.23 seconds of CPU time.
