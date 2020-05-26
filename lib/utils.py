@@ -33,7 +33,7 @@ from astropy.coordinates import SkyCoord, Angle
 def li_ma (n_on, n_off, alpha):
     if n_on <= 0 or n_off <= 0 or alpha == 0:
         return None
-    fc = (1 + alpha) / alpha
+    fc = 1 / alpha * (1 + alpha)
     fb = n_on / (n_on + n_off)
     f  = fc * fb
     gc = 1 + alpha
