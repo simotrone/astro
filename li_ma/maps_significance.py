@@ -1,16 +1,12 @@
-import math
+import argparse
 import matplotlib.pyplot as plt
-from matplotlib import colors
-# import mpl_toolkits.axisartist.axislines as axislines
 import numpy as np
-from lib.utils import li_ma
+import lib.significance as li_ma
 
-def significance_eq_5(n_on, n_off, alpha):
-    num = n_on - alpha * n_off
-    den = math.sqrt(n_on + alpha**2 * n_off)
-    return num / den
-
-def map_significances(alpha, ons, offs, fn):
+def significances_matrix(alpha, ons, offs, fn):
+    """
+    Provide a significances matrix for each on/off values.
+    """
     s = []
     for on in ons:
         row = []
@@ -26,7 +22,8 @@ def prepare_subplots(axes, data, on_ticks=None, off_ticks=None, colorbar=False):
         for d in data:
             values_buffer.append(np.min(d['significances']))
             values_buffer.append(np.max(d['significances']))
-        if True:
+        # two options to manage the range in colorbar
+        if False:
             # data min and max
             vmin, vmax = np.min(values_buffer), np.max(values_buffer)
         else:
@@ -69,12 +66,13 @@ def find_ticks(values, how_many=6):
     return { 'labels': samples, 'indexes': indexes }
 
 def main():
-    alphas = [0.0166666, 0.20, 0.25, 1]
-    N_ons = range(1, 21)
-    N_offs = range(1, 21)
+    alphas = [1/60, 0.20, 0.5, 1, 2, 10]
+    N_on_range  = range(1, 51)
+    N_off_range = range(1, 51)
     functions = [
-        { 'name': 'eq. 5',   'fn': significance_eq_5, },
-        { 'name': 'eq. 17*', 'fn': li_ma,             },
+        { 'name': 'eq. 5',  'fn': li_ma.eq_5, },
+        { 'name': 'eq. 9',  'fn': li_ma.eq_9, },
+        { 'name': 'eq. 17', 'fn': li_ma.eq_17 },
     ]
 
     n_fns = len(functions)
@@ -85,32 +83,39 @@ def main():
         for j, a in enumerate(alphas):
             data.append({
                 'name': fn['name'],
-                'significances': map_significances(a, N_ons, N_offs, fn['fn']),
+                'significances': significances_matrix(a, N_on_range, N_off_range, fn['fn']),
                 'alpha': a,
                 'axes': (i, j),
             })
 
     # plots
     fig, axes = plt.subplots(
-        figsize=(n_alphas*3, n_fns*3+1), # +inches for colorbar
+        figsize=(n_alphas*3, n_fns*3), # +inches for colorbar
         nrows=n_fns, ncols=n_alphas,
         # gridspec_kw={ 'wspace': 0.05, }
+        tight_layout=not OPTS.share_scale,
     )
-    fig.suptitle('Significances plots')
+    fig.suptitle('Significance map plots')
  
-    colorbar_flag = False
     prepare_subplots(
         axes,
         data,
-        on_ticks=find_ticks(N_ons),
-        off_ticks=find_ticks(N_offs),
-        colorbar=colorbar_flag
+        on_ticks=find_ticks(N_on_range),
+        off_ticks=find_ticks(N_off_range),
+        colorbar=OPTS.share_scale,
     )
-    if colorbar_flag:
+    if OPTS.share_scale:
         fig.colorbar(axes[0][0].get_images()[0], ax=axes, location='top', fraction=0.07)
+    else:
+        for ax in axes.flatten():
+            fig.colorbar(ax.get_images()[0], ax=ax, fraction=0.05)
  
-    # fig.tight_layout()
     plt.show()
 
-main()
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="ImageMap significance equations from Li&Ma paper")
+    parser.add_argument('-s', '--share-scale', action='store_true', help="impose the same significance scale for all the plots.")
+    OPTS = parser.parse_args()
+    main()
 
