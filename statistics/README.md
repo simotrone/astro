@@ -19,3 +19,10 @@ Playing with statistics.
 
 ![normal to chi2](assets/normal_to_chi2.png)
 
+
+## Poisson plots
+
+* Poisson stats
+* animated plots
+
+![poisson plots](assets/poisson_plots.png)
