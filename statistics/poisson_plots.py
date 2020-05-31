@@ -1,8 +1,8 @@
-from os import path
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.patches as patches
 from scipy.stats import poisson
+# from os import path
 
 def prepare_dist(ax, curves, dist, xlimit=(0,100), title=None):
     x = range(xlimit[1])
@@ -191,6 +191,13 @@ def main():
 
     show_static_stats(axes[0])
     anim = show_animated_numbers(axes[1], fig)
+
+    # TODO: animation save
+    # filename = 'poisson_plots.mp4'
+    # if not path.exists(filename):
+    #     ...
+    # anim.save('poisson_plots.mp4', writer='ffmpeg', codec='libx264', fps=15)
+    # anim.save('poisson_plots.gif', writer='imagemagick', fps=15)
 
     plt.show()
 
