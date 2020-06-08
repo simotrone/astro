@@ -4,6 +4,8 @@ import logging
 import os
 import numpy as np
 import pprint
+import matplotlib.pyplot as plt
+from scipy.stats import norm, chi2, binned_statistic
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger('sa') # significances analyzer
@@ -138,8 +140,6 @@ def compute_integral_frequency_distribution(data, keys, thresholds=[0,1,2,3,4,5]
     return result
 
 def plot_frequency(data, n=None, title=None, save=False):
-    import matplotlib.pyplot as plt
-    from scipy.stats import norm
     fig, ax = plt.subplots(1, 1, tight_layout=True)
     for p in data:
         ax.plot(p['x'], p['y'],
@@ -155,11 +155,16 @@ def plot_frequency(data, n=None, title=None, save=False):
     ax.legend(loc='best')
     if save:
         plt.savefig(save)
+        log.info(f'significance p-value plot saved in {save}')
     else:
         plt.show()
 
-
-def significance_analysis(data, opts):
+def p_value_analysis(data, opts):
+    """
+    p-value analysis with cumulative freq.
+    Only positive signals.
+    Negative ctools ts => 0
+    """
     # photometrics analysis
     total = len(data)
     positive_signals = [d for d in data if d['phm_excess'] > 0]
@@ -200,9 +205,140 @@ def significance_analysis(data, opts):
     ]
     save_filename = None
     if opts.save:
-        save_filename = f'empty_field_{opts.tmax:04d}.png'
+        save_filename = f'empty_field_norm_{opts.tmax:04d}.png'
     plot_frequency(data_to_plot, n=total, save=save_filename,
         title=f't={opts.tmax} sec Np={len(positive_signals)} N={total}')
+
+def data_binning(values, bins=10):
+    counts, bin_edges, bin_index_not_used = binned_statistic(values, values, statistic='count', bins=bins)
+    bin_centres = (bin_edges[:-1] + bin_edges[1:])/2
+    bin_widths = np.diff(bin_edges)
+    total = len(values)
+    freq = counts/total
+
+    ret = {
+        'total': total,
+        'counts': counts,
+        'freq': freq,
+        'bin_edges': bin_edges,
+        'bin_centres': bin_centres,
+        'bin_widths': bin_widths,
+        'n_bins': len(bin_edges)-1,
+        'max': np.max(values),
+        'min': np.min(values),
+    }
+    # pp.pprint(ret)
+    return ret
+
+def plot_counts(data, xlabel=None, title=None, save=False):
+    fig, ax = plt.subplots(1, 1, tight_layout=True)
+    for p in data:
+        ax.plot(p['x'], p['y'],
+            linestyle='', color=p['color'], marker=p['marker'],
+            label=p['label'], alpha=0.8)
+    #ax.errorbar(x=data['bin_centres'], y=data['counts'], fmt='+')
+    ax.plot(p['x'], chi2.pdf(p['x'], df=1),
+        label='Χ²', linestyle='-.', color='black', alpha=0.6)
+    if title:
+        ax.set_title(title)
+    if xlabel:
+        ax.set_xlabel(xlabel)
+    ax.set_yscale('log')
+    ax.set_ylabel('counts (normalized)')
+    ax.legend(loc='best')
+    if save:
+        plt.savefig(save)
+        log.info(f'ts distribution plot saved in {save}')
+    else:
+        plt.show()
+
+def ts_distribution(data, opts):
+    all_ts = []
+    all_phm_li_ma2 = []
+    for d in data:
+        # if d['phm_excess'] <= 0: continue
+        ts_val = d['ts'] if d['ts'] > 0 else 0
+        all_ts.append(ts_val)
+        all_phm_li_ma2.append(d['phm_li_ma']**2)
+
+    bins_edges=np.linspace(0, 30, 31)
+    ts_binned = data_binning(all_ts, bins=bins_edges)
+    phm_binned = data_binning(all_phm_li_ma2, bins=bins_edges)
+
+    data_to_plot = [
+        { 'x': phm_binned['bin_centres'],
+          'y': phm_binned['freq'],
+          'label': 'Li&Ma²',
+          'marker': 'o',
+          'color': 'orange', },
+        { 'x': ts_binned['bin_centres'],
+          'y': ts_binned['freq'],
+          'label': 'ctools TS',
+          'marker': 'v',
+          'color': 'blue', },
+    ]
+    save_filename = None
+    if opts.save:
+        save_filename = f'empty_field_ts_dist_{opts.tmax:04d}.png'
+    plot_counts(data_to_plot, xlabel='Test Statistic', save=save_filename,
+        title=f't={opts.tmax} sec N={len(all_ts)}')
+
+def significance_distribution(data, opts):
+    all_ts = []
+    all_phm_li_ma = []
+    for d in data:
+        # if d['phm_excess'] <= 0: continue
+        all_ts.append(d['ts'])
+        all_phm_li_ma.append(d['phm_li_ma'])
+    ts_binned = data_binning(all_ts, bins=30)
+    phm_binned = data_binning(all_phm_li_ma, bins=30)
+
+    factor=0.7
+    nrows=2
+    ncols=2
+    fig, axes = plt.subplots(nrows, ncols, tight_layout=True,
+        figsize=(ncols*6.4*factor, nrows*4.8*factor))
+
+    axes[0][0].plot(ts_binned['bin_centres'], ts_binned['counts'],
+        linestyle='', color='blue', marker='v', label='ctools TS')
+    axes[0][0].set_title(f't={opts.tmax} sec N={len(all_ts)}')
+    axes[0][0].set_xlabel('ctools TS')
+    axes[0][0].set_ylabel('counts')
+
+    axes[0][1].plot(phm_binned['bin_centres'], phm_binned['counts'],
+        linestyle='', color='orange', marker='o', label='Li&Ma')
+    axes[0][1].set_title(f't={opts.tmax} sec N={len(all_phm_li_ma)}')
+    axes[0][1].set_xlabel('Significance (phm Li&Ma)')
+    axes[0][1].set_ylabel('counts')
+
+    axes[1][0].plot(ts_binned['bin_centres'], ts_binned['freq'],
+        linestyle='', color='blue', marker='v', label='ctools TS')
+    axes[1][0].set_title(f't={opts.tmax} sec N={len(all_ts)}')
+    axes[1][0].set_xlabel('ctools TS')
+    axes[1][0].set_ylabel('counts (normalized)')
+    axes[1][0].set_yscale('log')
+    axes[1][0].plot(ts_binned['bin_centres'],
+        chi2.pdf(ts_binned['bin_centres'], df=1), label='Χ² pdf',
+        linestyle='-.', color='black', alpha=0.6)
+
+    axes[1][1].plot(phm_binned['bin_centres'], phm_binned['freq'],
+        linestyle='', color='orange', marker='o', label='Li&Ma')
+    axes[1][1].set_title(f't={opts.tmax} sec N={len(all_phm_li_ma)}')
+    axes[1][1].set_xlabel('Significance (phm Li&Ma)')
+    axes[1][1].set_ylabel('counts (normalized)')
+    axes[1][1].plot(phm_binned['bin_centres'],
+        norm.pdf(phm_binned['bin_centres']), label='norm pdf',
+        linestyle='-.', color='black', alpha=0.6)
+
+    for ax in axes.flatten():
+        ax.legend(loc='best')
+
+    if opts.save:
+        save_filename = f'empty_field_s_dist_{opts.tmax:04d}.png'
+        plt.savefig(save_filename)
+        log.info(f'significance distribution plot saved in {save_filename}')
+    else:
+        plt.show()
 
 def main(opts):
     data = get_raw_data(opts.dir, limit=opts.limit)
@@ -212,8 +348,12 @@ def main(opts):
     if opts.check_data:
         check_data(filtered_data)
 
-    significance_analysis(filtered_data, opts)
-
+    # show distribution of raw significance and TS
+    significance_distribution(filtered_data, opts)
+    # show distribution of ctools TS and Li&Ma²
+    ts_distribution(filtered_data, opts)
+    # show cumulative freq vs survival
+    p_value_analysis(filtered_data, opts)
 
 
 if __name__ == '__main__':
