@@ -147,6 +147,13 @@ def plot_frequency(data, n=None, title=None, save=False):
             label=p['label'], alpha=0.8)
 
     ax.plot(p['x'], norm.sf(p['x']), color='black', linestyle='-.', alpha=0.6, label='Gaussian probability')
+    # defined p-value: 0.05
+    if True:
+        norm_isf = norm.isf(0.05)
+        ax.plot([0, norm_isf], [0.05, 0.05], color='red', ls=':', alpha=0.9,
+            label=f'p-value=0.05, S={norm_isf:.2f}')
+        ax.plot([norm_isf, norm_isf], [0, norm.sf(norm_isf)], color='red',
+            ls=':', alpha=0.9)
     if title:
         ax.set_title(title)
     ax.set_yscale('log')
