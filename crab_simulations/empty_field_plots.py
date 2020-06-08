@@ -216,6 +216,46 @@ def p_value_analysis(data, opts):
     plot_frequency(data_to_plot, n=total, save=save_filename,
         title=f't={opts.tmax} sec Np={len(positive_signals)} N={total}')
 
+def p_value_analysis_fulldata(data, opts):
+    """
+    p-value analysis with cumulative freq.
+    All data are considered, but we filter with ctools ts >= 0.
+    """
+    total = len(data)
+    accepted_signals = [d for d in data if d['phm_excess'] > 0 or d['ts'] >= 0]
+    log.info(f'      considered data: {len(data)}')
+    log.info(f'with positive signals: {len(accepted_signals)}')
+
+    # data augmentation. add sqrt(ts) to data
+    for p in accepted_signals:
+        p['sqrt_ts'] = np.sqrt(p['ts'])
+
+    thresholds = np.linspace(0, 5, 11)
+    resulting_freq = compute_integral_frequency_distribution(
+        accepted_signals,
+        keys=['phm_li_ma', 'sqrt_ts'],
+        thresholds=thresholds,
+        total=total,
+    )
+
+    data_to_plot = [
+        { 'x': thresholds,
+          'y': resulting_freq['phm_li_ma']['freq'],
+          'label': 'photometric Li&Ma',
+          'marker': 'o',
+          'color': 'orange', },
+        { 'x': thresholds,
+          'y': resulting_freq['sqrt_ts']['freq'],
+          'label': 'ctools sqrt(TS)',
+          'marker': 'v',
+          'color': 'blue', },
+    ]
+    save_filename = None
+    if opts.save:
+        save_filename = f'empty_field_fulldata_norm_{opts.tmax:04d}.png'
+    plot_frequency(data_to_plot, n=total, save=save_filename,
+        title=f't={opts.tmax} sec Np={len(accepted_signals)} N={total}')
+
 def data_binning(values, bins=10):
     counts, bin_edges, bin_index_not_used = binned_statistic(values, values, statistic='count', bins=bins)
     bin_centres = (bin_edges[:-1] + bin_edges[1:])/2
@@ -361,6 +401,7 @@ def main(opts):
     ts_distribution(filtered_data, opts)
     # show cumulative freq vs survival
     p_value_analysis(filtered_data, opts)
+    # p_value_analysis_fulldata(filtered_data, opts)
 
 
 if __name__ == '__main__':
