@@ -124,6 +124,7 @@ def compute_integral_frequency_distribution(data, keys, thresholds=[0,1,2,3,4,5]
             'thresholds': thresholds,
             'count': np.zeros(len(thresholds)),
             'freq': np.zeros(len(thresholds)),
+            'freq_err': np.zeros(len(thresholds)),
         }
     for d in data:
         for k in keys:
@@ -136,13 +137,15 @@ def compute_integral_frequency_distribution(data, keys, thresholds=[0,1,2,3,4,5]
         for k in keys:
             for i, c in enumerate(result[k]['count']):
                 result[k]['freq'][i] = c / total
+                result[k]['freq_err'][i] = np.sqrt(c) / total 
 
     return result
 
 def plot_frequency(data, n=None, title=None, save=False):
     fig, ax = plt.subplots(1, 1, tight_layout=True)
     for p in data:
-        ax.plot(p['x'], p['y'],
+        ax.errorbar(x=p['x'], y=p['y'],
+            yerr=p['yerr'],
             linestyle='', color=p['color'], marker=p['marker'],
             label=p['label'], alpha=0.8)
 
@@ -196,13 +199,15 @@ def p_value_analysis(data, opts):
     data_to_plot = [
         { 'x': thresholds,
           'y': resulting_freq['phm_li_ma']['freq'],
+          'yerr': resulting_freq['phm_li_ma']['freq_err'],
           'label': 'photometric Li&Ma',
-          'marker': 'o',
+          'marker': '.',
           'color': 'orange', },
         { 'x': thresholds,
           'y': resulting_freq['sqrt_ts']['freq'],
+          'yerr': resulting_freq['sqrt_ts']['freq_err'],
           'label': 'ctools sqrt(TS)',
-          'marker': 'v',
+          'marker': '.',
           'color': 'blue', },
         # { 'x': thresholds,
         #   'y': resulting_freq['li_ma']['freq'],
@@ -280,7 +285,8 @@ def data_binning(values, bins=10):
 def plot_counts(data, xlabel=None, title=None, save=False):
     fig, ax = plt.subplots(1, 1, tight_layout=True)
     for p in data:
-        ax.plot(p['x'], p['y'],
+        ax.errorbar(x=p['x'], y=p['y'],
+            xerr=p['xerr'], yerr=p['yerr'],
             linestyle='', color=p['color'], marker=p['marker'],
             label=p['label'], alpha=0.8)
     #ax.errorbar(x=data['bin_centres'], y=data['counts'], fmt='+')
@@ -315,13 +321,17 @@ def ts_distribution(data, opts):
     data_to_plot = [
         { 'x': phm_binned['bin_centres'],
           'y': phm_binned['freq'],
+          'xerr': phm_binned['bin_widths']/2,
+          'yerr': np.sqrt(phm_binned['freq']/phm_binned['total']),
           'label': 'Li&Ma²',
-          'marker': 'o',
+          'marker': '.',
           'color': 'orange', },
         { 'x': ts_binned['bin_centres'],
           'y': ts_binned['freq'],
+          'xerr': ts_binned['bin_widths']/2,
+          'yerr': np.sqrt(ts_binned['freq']/ts_binned['total']),
           'label': 'ctools TS',
-          'marker': 'v',
+          'marker': '.',
           'color': 'blue', },
     ]
     save_filename = None
@@ -346,20 +356,24 @@ def significance_distribution(data, opts):
     fig, axes = plt.subplots(nrows, ncols, tight_layout=True,
         figsize=(ncols*6.4*factor, nrows*4.8*factor))
 
-    axes[0][0].plot(ts_binned['bin_centres'], ts_binned['counts'],
-        linestyle='', color='blue', marker='v', label='ctools TS')
+    axes[0][0].errorbar(x=ts_binned['bin_centres'], y=ts_binned['counts'],
+        xerr=ts_binned['bin_widths']/2, yerr=np.sqrt(ts_binned['counts']),
+        linestyle='', color='blue', marker='.', label='ctools TS')
     axes[0][0].set_title(f't={opts.tmax} sec N={len(all_ts)}')
     axes[0][0].set_xlabel('ctools TS')
     axes[0][0].set_ylabel('counts')
 
-    axes[0][1].plot(phm_binned['bin_centres'], phm_binned['counts'],
-        linestyle='', color='orange', marker='o', label='Li&Ma')
+    axes[0][1].errorbar(x=phm_binned['bin_centres'], y=phm_binned['counts'],
+        xerr=phm_binned['bin_widths']/2, yerr=np.sqrt(phm_binned['counts']),
+        linestyle='', color='orange', marker='.', label='Li&Ma')
     axes[0][1].set_title(f't={opts.tmax} sec N={len(all_phm_li_ma)}')
     axes[0][1].set_xlabel('Significance (phm Li&Ma)')
     axes[0][1].set_ylabel('counts')
 
-    axes[1][0].plot(ts_binned['bin_centres'], ts_binned['freq'],
-        linestyle='', color='blue', marker='v', label='ctools TS')
+    axes[1][0].errorbar(x=ts_binned['bin_centres'], y=ts_binned['freq'],
+        xerr=ts_binned['bin_widths']/2,
+        yerr=np.sqrt(ts_binned['freq']/ts_binned['total']),
+        linestyle='', color='blue', marker='.', label='ctools TS')
     axes[1][0].set_title(f't={opts.tmax} sec N={len(all_ts)}')
     axes[1][0].set_xlabel('ctools TS')
     axes[1][0].set_ylabel('counts (normalized)')
@@ -368,8 +382,10 @@ def significance_distribution(data, opts):
         chi2.pdf(ts_binned['bin_centres'], df=1), label='Χ² pdf',
         linestyle='-.', color='black', alpha=0.6)
 
-    axes[1][1].plot(phm_binned['bin_centres'], phm_binned['freq'],
-        linestyle='', color='orange', marker='o', label='Li&Ma')
+    axes[1][1].errorbar(x=phm_binned['bin_centres'], y=phm_binned['freq'],
+        xerr=phm_binned['bin_widths']/2,
+        yerr=np.sqrt(phm_binned['freq']/phm_binned['total']),
+        linestyle='', color='orange', marker='.', label='Li&Ma')
     axes[1][1].set_title(f't={opts.tmax} sec N={len(all_phm_li_ma)}')
     axes[1][1].set_xlabel('Significance (phm Li&Ma)')
     axes[1][1].set_ylabel('counts (normalized)')
