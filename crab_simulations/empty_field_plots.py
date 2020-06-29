@@ -387,6 +387,18 @@ def significance_distribution(data, opts):
     else:
         plt.show()
 
+def export_data(data, fields):
+    headers = ['seed'] + fields
+    print(",".join(headers))
+    for d in data:
+        row = [str(d['seed'])]
+        for f in fields:
+            val = d[f]
+            if not isinstance(val, float):
+                raise Exception(f"Issue with {val}, it is not float.")
+            row.append(str(val))
+        print(",".join(row))
+
 def main(opts):
     data = get_raw_data(opts.dir, limit=opts.limit)
 
@@ -394,6 +406,11 @@ def main(opts):
     filtered_data = [d for d in data if d['tmax'] == opts.tmax]
     if opts.check_data:
         check_data(filtered_data)
+
+    if opts.extract:
+        fields = ['ts', 'phm_on', 'phm_off', 'phm_excess', 'phm_li_ma']
+        export_data(filtered_data, fields=fields)
+        exit(0)
 
     # show distribution of raw significance and TS
     significance_distribution(filtered_data, opts)
@@ -415,6 +432,8 @@ if __name__ == '__main__':
         help='save the plot')
     parser.add_argument('--check-data', action='store_true',
         help='check the raw data')
+    parser.add_argument('--extract', action='store_true',
+        help='extract data')
     args = parser.parse_args()
     main(args)
 
